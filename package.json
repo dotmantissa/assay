@@ -1,0 +1,24 @@
+{
+  "name": "assay", "version": "0.1.0", "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 0.0.0.0", "build": "next build", "start": "next start --hostname 0.0.0.0",
+    "lint": "eslint .", "typecheck": "tsc --noEmit", "test": "vitest run",
+    "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts",
+    "contracts:deploy": "tsx --env-file=.env.local scripts/deploy.ts",
+    "contracts:verify": "tsx --env-file=.env.local scripts/verify.ts",
+    "worker": "tsx --env-file=.env.local scripts/worker.ts",
+    "test:contracts": ".venv/bin/pytest tests/direct -v",
+    "lint:contracts": ".venv/bin/genvm-lint check contracts/benchmark_registry.py && .venv/bin/genvm-lint check contracts/bond_vault.py && .venv/bin/genvm-lint check contracts/assay_office.py"
+  },
+  "dependencies": {
+    "next": "^16.0.0", "react": "^19.2.0", "react-dom": "^19.2.0",
+    "@privy-io/react-auth": "^3.0.0", "@privy-io/server-auth": "^1.32.0",
+    "@neondatabase/serverless": "^1.0.2", "genlayer-js": "^0.22.0",
+    "zod": "^4.0.0", "lucide-react": "^0.468.0", "next-themes": "^0.4.6",
+    "@fontsource-variable/fraunces": "^5.2.0", "@fontsource-variable/dm-sans": "^5.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0", "@types/node": "^22.0.0", "@types/react": "^19.0.0", "@types/react-dom": "^19.0.0",
+    "eslint": "^9.0.0", "eslint-config-next": "^16.0.0", "tsx": "^4.20.0", "vitest": "^3.2.0", "@playwright/test": "^1.56.0"
+  }
+}

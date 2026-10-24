@@ -1,0 +1,13 @@
+node_modules/
+.next/
+.env*
+!.env.example
+.venv/
+__pycache__/
+.pytest_cache/
+.gltest_cache/
+coverage/
+playwright-report/
+test-results/
+*.log
+.local/

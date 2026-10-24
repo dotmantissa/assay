@@ -1,0 +1,4 @@
+[tool.pytest.ini_options]
+testpaths = ["tests/direct"]
+addopts = "--strict-markers"
+markers = ["integration: real Studio consensus tests"]
