@@ -1,0 +1,35 @@
+{
+  "project": "assay-office",
+  "scope": "mantissas-projects",
+  "environment": "production",
+  "alias": "https://assay-office.vercel.app",
+  "deployment_url": "https://assay-office-2rlq5qfxb-mantissas-projects.vercel.app",
+  "deployment_id": "dpl_59VaufetvnWWGznHQVE2nSi1VHzM",
+  "source_commit": "11b0e828f728360dc99307436f0940e4656e1f4e",
+  "verified_at": "2026-10-25T02:09:58Z",
+  "node_version": "22.x",
+  "region": "iad1",
+  "checks": {
+    "public_alias_http": 200,
+    "live_benchmark_count": 1,
+    "live_run_count": 0,
+    "authorized_worker_http": 200,
+    "unauthorized_worker_http": 401,
+    "unauthorized_submission_http": 401,
+    "unauthorized_evidence_upload_http": 401,
+    "desktop_and_mobile_overflow": false,
+    "browser_runtime_errors": 0,
+    "theme_toggle": true,
+    "email_only_login_dialog": true,
+    "privy_origin_accepted": true,
+    "otp_session_verified": false,
+    "application_tests_passed": 30
+  },
+  "worker": {
+    "function_budget_seconds": 300,
+    "processing_window_seconds": 210,
+    "github_schedule": "*/5 * * * *",
+    "vercel_recovery_schedule": "17 3 * * *",
+    "github_workflow": ".github/workflows/worker.yml"
+  }
+}
