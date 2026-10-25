@@ -14,7 +14,8 @@
     "contracts:verify": "tsx --env-file=.env.local scripts/verify.ts",
     "worker": "tsx --env-file=.env.local scripts/worker.ts",
     "test:contracts": ".venv/bin/pytest tests/direct -v",
-    "lint:contracts": ".venv/bin/genvm-lint check contracts/benchmark_registry.py && .venv/bin/genvm-lint check contracts/bond_vault.py && .venv/bin/genvm-lint check contracts/assay_office.py"
+    "lint:contracts": ".venv/bin/genvm-lint check contracts/benchmark_registry.py && .venv/bin/genvm-lint check contracts/bond_vault.py && .venv/bin/genvm-lint check contracts/assay_office.py",
+    "test:integration": "tsx --env-file=.env.local scripts/studio-integration.ts"
   },
   "dependencies": {
     "next": "^16.0.0",

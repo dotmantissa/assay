@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS jobs (
 );
 CREATE INDEX IF NOT EXISTS jobs_queue ON jobs(state,lease_until,created_at);
 CREATE TABLE IF NOT EXISTS public_records (
- id text PRIMARY KEY, kind text NOT NULL CHECK(kind IN ('benchmark','run')), record jsonb NOT NULL,
- updated_at timestamptz NOT NULL DEFAULT now()
+ id text NOT NULL, kind text NOT NULL CHECK(kind IN ('benchmark','run')), record jsonb NOT NULL,
+ updated_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(kind,id)
 );
 CREATE TABLE IF NOT EXISTS rate_limits (
  bucket text PRIMARY KEY, count integer NOT NULL, expires_at timestamptz NOT NULL

@@ -89,8 +89,11 @@ npm run typecheck
 npm run lint
 npm run build
 npm run contracts:verify
+npm run test:integration
 ```
 
 Direct tests cover every contract, malformed evidence, authorization, settlement, sampling, confidence intervals and the error set comparator. Live Studio integration tests use separate assay and vault instances. Their fixtures never become application leaderboard records.
 
 The email relay is custodial: it is trusted to act for sponsored identities. Direct contract users authorize themselves by sender address. The public account identifier is a keyed hash of the Privy identity, so the application does not write email addresses to contracts.
+
+The deployed Studio contracts have passed a live grading round, a fresh sample challenge and finalized vault settlement. The integration receipts are recorded in `tests/integration/studio-receipts.json`. The suite also verifies recovery of a signed transaction interrupted before broadcast.

@@ -37,15 +37,15 @@ export default async function Home() {
         </section>
         <div className="metrics">
           <div>
-            <strong>{published.length}</strong>
+            <strong>{data.available ? published.length : "…"}</strong>
             <span>Verified runs</span>
           </div>
           <div>
-            <strong>{data.benchmarks.length}</strong>
+            <strong>{data.available ? data.benchmarks.length : "…"}</strong>
             <span>Public benchmarks</span>
           </div>
           <div>
-            <strong>{items}</strong>
+            <strong>{data.available ? items : "…"}</strong>
             <span>Answers examined</span>
           </div>
         </div>
@@ -58,7 +58,9 @@ export default async function Home() {
             </p>
           </div>
         )}
-        <Ledger runs={data.runs} benchmarks={data.benchmarks} />
+        {data.available && (
+          <Ledger runs={data.runs} benchmarks={data.benchmarks} />
+        )}
         <div className="bottom-note">
           <Scale size={23} />
           <p>

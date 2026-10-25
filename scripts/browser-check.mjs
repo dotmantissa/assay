@@ -8,7 +8,11 @@ await page.goto("http://localhost:3000/", {
   timeout: 90000,
 });
 await page.waitForTimeout(2000);
-await page.screenshot({ path: ".local/assay-desktop.png", fullPage: true });
+await page.screenshot({
+  caret: "initial",
+  path: ".local/assay-desktop.png",
+  fullPage: true,
+});
 console.log("Home title:", await page.title());
 console.log("Main heading:", await page.locator("h1").innerText());
 console.log(
@@ -20,7 +24,11 @@ console.log(
   "Theme after toggle:",
   await page.locator("html").getAttribute("data-theme"),
 );
-await page.screenshot({ path: ".local/assay-dark.png", fullPage: true });
+await page.screenshot({
+  caret: "initial",
+  path: ".local/assay-dark.png",
+  fullPage: true,
+});
 await page.getByRole("link", { name: "Benchmarks", exact: true }).click();
 await page.waitForURL("**/benchmarks");
 console.log("Benchmark route:", await page.locator("h1").innerText());
@@ -42,7 +50,11 @@ console.log(
   "Mobile horizontal overflow:",
   await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
 );
-await page.screenshot({ path: ".local/assay-mobile.png", fullPage: true });
+await page.screenshot({
+  caret: "initial",
+  path: ".local/assay-mobile.png",
+  fullPage: true,
+});
 await page
   .getByRole("button", { name: "Sign in with email", exact: true })
   .click();
@@ -51,6 +63,10 @@ console.log(
   "Email login dialog visible:",
   await page.getByRole("dialog").count(),
 );
-await page.screenshot({ path: ".local/assay-email.png", fullPage: true });
+await page.screenshot({
+  caret: "initial",
+  path: ".local/assay-email.png",
+  fullPage: true,
+});
 console.log("Browser runtime errors:", errors);
 await browser.close();

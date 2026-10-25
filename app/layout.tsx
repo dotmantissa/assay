@@ -25,7 +25,7 @@ export default function RootLayout({
 }) {
   const office = addresses().office;
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body>
         <Providers>
           <a className="skip-link" href="#content">

@@ -1,0 +1,155 @@
+{
+  "transactions": {
+    "benchmark": "0x14c9c57ec7edfe395583774e3004d177f1e84ea8d9c5a6bb46268b030cb394eb",
+    "vault": "0xc869ea1b84c6d8ff8a9dd0db289e52fc1242ede4f6f61391024c5d5e7993880a",
+    "office": "0x3bd72a7f29989e932d5e6fa4a551e8e1f9c9c6e799f93e56d67e0a389bf06c32",
+    "configure": "0x075464fdb67997b84c97e62f186724ec4d2c09cb11c0f9c5c7f671c0e6cf5a43",
+    "runBond": "0x466ae236d3e8b31d20eae1e753a8f1b9be71c2eee8df1186c972b3788672943b",
+    "commit": "0x33b89e686cdd9168b701eff4aeefe2e897df75a8024080f39ba361bec0264dbe",
+    "start": "0x08cecc840609438401075169dc54444b5efa86929df9368db1863f241e9188a2",
+    "grade-0": "0x84e395d43283fbc0336b8e55756e9d73908ed579eeac2e2e13ae6391ad9e37a8",
+    "grade-1": "0x3a21bf7247afb1a64a3cc34c18168146d02c3fd450a85b38a3fa982f6355e5bd",
+    "grade-2": "0xe6dfe6e36cb626295c6224012bd3ffec535c200a591c83e1639af19d29eb2954",
+    "grade-3": "0x47b76448cae670a962779b1fc3a608c0933d405f814d0100004db096c4f1895d",
+    "finalize": "0x134a9cff96662cb5b8f664395b700b9b537f79dbad24814d1f73d24897aad5b3",
+    "challengeBond": "0xe1b5be570bfe1f0480d376fdfc152d7083b6ed6dbc229e41532b9552a54f20ce",
+    "challenge": "0x61761e3ebd310d4b1c6a020eedb31742f7b3389772470049429cbaf8fa222469",
+    "challengeStart": "0xc796a81bde7b0f12c51c2fcb6f7d8f1029d8406d520e32a4102cc23f490ca22b",
+    "regrade-0": "0x08000ed5f486294e8c818b8fef2b87a44fd9448a1143295e81b677f26540cf22",
+    "regrade-1": "0x42f1f42da4a458c8f6dcbb3681176c8e19b29c0dd969d64b247a17cde6258935",
+    "regrade-2": "0x0ea3d04524d38447bb6e4ab584474e377a92ab3df0297aae021307399b3a7973",
+    "regrade-3": "0x42a26ad793029e4eba4c8cb1eb474eaa5cad140408b97ae62f069feb249897b1",
+    "challengeFinalize": "0x07474873275b1d41173fd9c9002b8976cd1646f51c9490ff1fd93727209c84d3",
+    "broadcastRecovery": "0xdf834e639cf4dfffe8719f9c98004e40fad8bb5ef28181e4fbb18a72d263f7ad"
+  },
+  "addresses": {
+    "vault": "0xFdb7310d42d4418a6cd037FCddF1313DA6b9C973",
+    "office": "0x145482ce1622b008F41A3BcaD5c6c0b188A0D963"
+  },
+  "checks": {
+    "benchmark": "SUCCESS",
+    "vault": "SUCCESS",
+    "office": "SUCCESS",
+    "configure": "SUCCESS",
+    "runBond": "SUCCESS",
+    "commit": "SUCCESS",
+    "start": "SUCCESS",
+    "grade-0": "SUCCESS",
+    "grade-1": "SUCCESS",
+    "grade-2": "SUCCESS",
+    "grade-3": "SUCCESS",
+    "finalize": "SUCCESS",
+    "challengeBond": "SUCCESS",
+    "challenge": "SUCCESS",
+    "challengeStart": "SUCCESS",
+    "regrade-0": "SUCCESS",
+    "regrade-1": "SUCCESS",
+    "regrade-2": "SUCCESS",
+    "regrade-3": "SUCCESS",
+    "challengeFinalize": "SUCCESS",
+    "settlement": "SUCCESS",
+    "freshSample": "SUCCESS",
+    "rounds": "SUCCESS",
+    "broadcastRecovery": "SUCCESS"
+  },
+  "original": {
+    "challenge_id": "",
+    "challenger": "",
+    "commitment_tx": "0x33b89e686cdd9168b701eff4aeefe2e897df75a8024080f39ba361bec0264dbe",
+    "grades": [
+      {
+        "id": "reasoning-05",
+        "incorrect": false,
+        "reason": "The answer correctly identifies the 50% true positive rate and provides the sound mathematical reasoning consistent with the reference data.",
+        "score": 1,
+        "sources": []
+      },
+      {
+        "id": "reasoning-09",
+        "incorrect": false,
+        "reason": "The answer correctly identifies that a p-value is not the probability of the hypothesis being true and provides the accurate definition regarding results under null assumptions, matching the reference.",
+        "score": 1,
+        "sources": []
+      },
+      {
+        "id": "reasoning-17",
+        "incorrect": false,
+        "reason": "The answer correctly identifies that a small sample size does not establish certainty for a larger dataset and matches the reference reasoning regarding uncertainty and sampling.",
+        "score": 1,
+        "sources": []
+      },
+      {
+        "id": "reasoning-31",
+        "incorrect": false,
+        "reason": "The answer matches the reference exactly, identifying selection bias as the reason why the score cannot honestly represent performance.",
+        "score": 1,
+        "sources": []
+      }
+    ],
+    "high_bps": 10000,
+    "low_bps": 5101,
+    "method": "Wilson 95%",
+    "n": 4,
+    "number": 0,
+    "sample": [
+      4,
+      8,
+      16,
+      30
+    ],
+    "score_bps": 10000,
+    "seed": "0x33b89e686cdd9168b701eff4aeefe2e897df75a8024080f39ba361bec0264dbe",
+    "status": "published"
+  },
+  "challenge": {
+    "challenge_id": "integration-challenge",
+    "challenge_successful": false,
+    "challenger": "integration-challenger",
+    "commitment_tx": "0x61761e3ebd310d4b1c6a020eedb31742f7b3389772470049429cbaf8fa222469",
+    "grades": [
+      {
+        "id": "reasoning-06",
+        "incorrect": false,
+        "reason": "The answer correctly identifies that correlation does not imply causation and provides the sound reasoning regarding the confounding variable of warm weather, matching the reference exactly.",
+        "score": 1,
+        "sources": []
+      },
+      {
+        "id": "reasoning-12",
+        "incorrect": false,
+        "reason": "The answer correctly identifies that voluntary response and selection bias prevent the survey from establishing a satisfaction rate for all customers, matching the reference.",
+        "score": 1,
+        "sources": []
+      },
+      {
+        "id": "reasoning-21",
+        "incorrect": false,
+        "reason": "The answer matches the reference exactly, correctly identifying the issue as selective reporting/cherry picking and providing the appropriate mitigation strategy.",
+        "score": 1,
+        "sources": []
+      },
+      {
+        "id": "reasoning-38",
+        "incorrect": false,
+        "reason": "The answer matches the reference verbatim, providing sound reasoning and a correct conclusion.",
+        "score": 1,
+        "sources": []
+      }
+    ],
+    "high_bps": 10000,
+    "low_bps": 5101,
+    "method": "Wilson 95%",
+    "n": 4,
+    "number": 1,
+    "sample": [
+      5,
+      11,
+      20,
+      37
+    ],
+    "score_bps": 10000,
+    "seed": "0x61761e3ebd310d4b1c6a020eedb31742f7b3389772470049429cbaf8fa222469",
+    "settlement": "requested",
+    "status": "published"
+  }
+}

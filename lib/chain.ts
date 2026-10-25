@@ -56,10 +56,7 @@ export async function read<T>(
   })) as T;
 }
 export function executionSucceeded(tx: GenLayerTransaction): boolean {
-  return (
-    tx.consensus_data?.leader_receipt?.[0]?.execution_result === "SUCCESS" ||
-    tx.resultName === "SUCCESS"
-  );
+  return tx.consensus_data?.leader_receipt?.[0]?.execution_result === "SUCCESS";
 }
 export async function receipt(hash: string) {
   const tx = await client().getTransaction({

@@ -49,7 +49,7 @@ export async function indexRecord(kind: "benchmark" | "run", id: string) {
     kind === "benchmark"
       ? await read<Benchmark>("registry", "get_benchmark", [id])
       : await read<Run>("office", "get_run", [id]);
-  await db()`INSERT INTO public_records(id,kind,record) VALUES(${id},${kind},${JSON.stringify(record)}) ON CONFLICT(id) DO UPDATE SET record=excluded.record,updated_at=now()`;
+  await db()`INSERT INTO public_records(id,kind,record) VALUES(${id},${kind},${JSON.stringify(record)}) ON CONFLICT(kind,id) DO UPDATE SET record=excluded.record,updated_at=now()`;
   return record;
 }
 export async function syncRecords() {
@@ -60,7 +60,7 @@ export async function syncRecords() {
       "list_benchmarks",
       [offset, 100],
     ))
-      await db()`INSERT INTO public_records(id,kind,record) VALUES(${record.id},'benchmark',${JSON.stringify(record)}) ON CONFLICT(id) DO UPDATE SET record=excluded.record,updated_at=now()`;
+      await db()`INSERT INTO public_records(id,kind,record) VALUES(${record.id},'benchmark',${JSON.stringify(record)}) ON CONFLICT(kind,id) DO UPDATE SET record=excluded.record,updated_at=now()`;
   }
   const config = await read<{ run_count: number }>("office", "configuration");
   for (let offset = 0; offset < config.run_count; offset += 100) {
@@ -68,7 +68,7 @@ export async function syncRecords() {
       offset,
       100,
     ]))
-      await db()`INSERT INTO public_records(id,kind,record) VALUES(${record.id},'run',${JSON.stringify(record)}) ON CONFLICT(id) DO UPDATE SET record=excluded.record,updated_at=now()`;
+      await db()`INSERT INTO public_records(id,kind,record) VALUES(${record.id},'run',${JSON.stringify(record)}) ON CONFLICT(kind,id) DO UPDATE SET record=excluded.record,updated_at=now()`;
   }
 }
 async function advanceNext() {

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import https from "node:https";
+import { curlFetch } from "./network";
 import { z } from "zod";
 import { HttpError } from "./auth";
 import { db } from "./db";
@@ -60,7 +61,26 @@ export async function fetchEvidence(
   const ips = await lookup(host, { all: true });
   if (!ips.length || ips.some((ip) => !publicAddress(ip.address)))
     throw new HttpError(400, "Evidence must be on the public internet");
-  const ip = ips[0];
+  const ip = ips.find((entry) => entry.family === 4) || ips[0];
+  if (process.env.ASSAY_HTTP_TRANSPORT === "curl") {
+    const response = await curlFetch(
+      url,
+      { headers: { Accept: "application/json" } },
+      { host, address: ip.address, maximum: 2_020_000 },
+    );
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      const location = response.headers.get("location");
+      if (redirects >= 3 || !location)
+        throw new HttpError(400, "Too many evidence redirects");
+      return fetchEvidence(new URL(location, url).href, redirects + 1);
+    }
+    if (response.status !== 200)
+      throw new HttpError(400, "The evidence URL did not return a document");
+    const raw = await response.text();
+    if (Buffer.byteLength(raw) > 2_000_000)
+      throw new HttpError(413, "Evidence is too large");
+    return raw;
+  }
   return await new Promise<string>((resolve, reject) => {
     const request = https.get(
       url,
