@@ -24,3 +24,13 @@ describe('Authentication and receipts',()=>{
  it('keeps personal identity out of public attribution',()=>{process.env.SESSION_SECRET='test-fixture-key';expect(accountId('did:privy:test')).not.toContain('privy');expect(accountId('did:privy:test')).toBe(accountId('did:privy:test'));});
  it('does not equate accepted lifecycle with execution success',()=>{expect(executionSucceeded({statusName:TransactionStatus.FINALIZED})).toBe(false);expect(executionSucceeded({statusName:TransactionStatus.ACCEPTED,consensus_data:{final:true,leader_receipt:[{execution_result:'ERROR'} as never]}})).toBe(false);expect(executionSucceeded({consensus_data:{final:true,leader_receipt:[{execution_result:'SUCCESS'} as never]}})).toBe(true);});
 });
+
+import { samePayload } from '../../lib/jobs';
+import { body, HttpError } from '../../lib/auth';
+describe('Request recovery',()=>{
+ it('recognizes the same idempotent payload after JSONB reorders keys',()=>{expect(samePayload({model:'release',benchmark_id:'b'},{benchmark_id:'b',model:'release'})).toBe(true);expect(samePayload({model:'release'},{model:'other'})).toBe(false);});
+ it('bounds streamed request bodies before parsing',async()=>{
+   const request=new Request('https://assay.example/api/evidence',{method:'POST',body:'x'.repeat(2_000_001)});
+   await expect(body(request)).rejects.toBeInstanceOf(HttpError);
+ });
+});

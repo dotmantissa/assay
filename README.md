@@ -1,0 +1,96 @@
+# Assay
+
+Good models deserve honest numbers.
+
+Assay is an independent office for AI benchmark claims. A publisher locks a dataset and a public rubric. A submitter commits complete model outputs. GenLayer validators grade a reproducible sample, agree about the mistakes as well as the total, and publish a score with a confidence interval. Anyone else can ask for a fresh assay.
+
+The interface reads actual contract records through a PostgreSQL index. There are no demo scores or invented leaderboard entries. A new installation starts empty.
+
+## What is here
+
+Next.js provides the public ledger, benchmark publishing, email sign in, submission tracking, challenge history, light and dark themes, API key management and embeddable badges. Privy verifies email accounts. The server sponsors transactions so people never need a wallet prompt.
+
+Three Python contracts own the evidence and verdicts:
+
+| Contract | Responsibility |
+| --- | --- |
+| Benchmark registry | Immutable dataset hash, rubric, sampling and comparison rules |
+| Assay office | Output commitment, receipt verified sampling, item consensus, publication and fresh challenge rounds |
+| Bond vault | Native deposits, locks, authorized settlement and withdrawals |
+
+The initial Reasoning under scrutiny benchmark contains 40 authored questions about probability, evidence, measurement and honest evaluation. It is a small public test, not a claim of comprehensive model capability. Its questions and reference answers live in `benchmarks/reasoning.json`.
+
+## Run locally
+
+Use Node.js 20.9 or later and Python 3.12 or later.
+
+1. Run `npm ci`.
+2. Copy `.env.example` to `.env.local`. Set the Privy app ID and server secret, Neon connection URL, Studio signer key, a random session secret and a separate cron secret. Keep `.env.local` private with `chmod 600 .env.local`.
+3. Set `APP_URL` to the public HTTPS address you will use for uploaded evidence. Public URL submissions work without application hosted uploads. Configure that origin in Privy.
+4. Run `npm run db:migrate`.
+5. Run `npm run dev` and, in another terminal, `npm run worker`.
+
+The worker uses durable database leases, serializes the shared signer and saves signed transactions before broadcasting. A restart resumes the same transaction. Failed steps remain visible and can be retried from the job page.
+
+For production, run `npm run build`, `npm start` and the separate worker. Put an HTTPS reverse proxy in front of the application with a 2 MB request limit. A Node hosting service with a persistent worker works well. Serverless hosting can call `POST /api/cron` with the cron bearer secret instead, but it must give each invocation enough time to advance a job. Do not deploy this as a static export.
+
+Only the public Privy app ID goes into the browser bundle. Never prefix database credentials, signer keys or server secrets with `NEXT_PUBLIC_`.
+
+## Studio deployment
+
+`deployments/studio.json` records deployed addresses, transaction hashes and previous unused revisions. `npm run contracts:deploy` resumes saved deployment transactions, verifies execution success and permanently wires the vault to its assay office. `npm run contracts:verify` checks deployed source bytes, schemas and live configuration against the repository.
+
+Studio is gasless. This deployment disables financial bond backing with a zero minimum. The vault implements native escrow, but a Studio score must never be described as financially collateralized. TVG is transaction value generated, not an invented token.
+
+Sampling uses the verified commitment transaction hash and SHA256 ranking without replacement. The pinned VM does not expose its transaction hash directly, so a separate transaction verifies the commitment through Studio RPC before sampling. This makes the process reproducible but permits transaction hash grinding. It is not a randomness beacon.
+
+## Evidence format
+
+A dataset is a JSON object containing `items`. Each item has a unique string `id` and a string `question`. Optional `reference` text supplies an answer key. Optional `sources` supplies up to three public HTTPS sources for questions that need current ground truth.
+
+An output document contains `outputs`, a map from every dataset item ID to the model’s full answer as a string. Its SHA256 must describe the exact served bytes. Reformatting a JSON document changes its hash.
+
+Evidence uploads become immutable public documents. Do not include emails, credentials, private customer data or anything you cannot publish. External URL requests reject private network destinations and unsafe redirects, pin the validated destination address, and enforce time and size limits. Validators independently fetch and hash the evidence again.
+
+## Submission API
+
+Create an API key after email sign in. The full key appears once. The database retains its hash, and revoking the key immediately prevents further use.
+
+`POST /api/submissions` accepts a bearer key and this JSON shape:
+
+```json
+{
+  "benchmark_id": "your registered benchmark identifier",
+  "model": "your model and release version",
+  "outputs_url": "https://your.host/outputs.json",
+  "outputs_hash": "the lowercase SHA256 of the exact output document"
+}
+```
+
+Send an `Idempotency-Key` header when a request might be repeated. A successful request returns HTTP 202 with a job ID and the future record ID. Poll `GET /api/jobs/{id}` using the same bearer credential. A complete job links to `/runs/{result_id}`. A failed job can be retried with `POST /api/jobs/{id}`.
+
+`POST /api/benchmarks` publishes a dataset definition. `POST /api/runs/{id}/challenge` requests a fresh round. `POST /api/evidence` accepts a `kind` of `dataset` or `outputs` and a `document` object. API key administration requires an email session rather than another API key.
+
+## CI and badges
+
+The composite action in `.github/actions/assay` submits a real output document, waits for consensus and returns its public record URL. Use it from another repository as `dotmantissa/assay/.github/actions/assay@main`, with the inputs listed in its `action.yml`. Store the API key in GitHub Actions secrets.
+
+The badge endpoint is `/api/badges/{run_id}`. Link the badge to `/runs/{run_id}` on a model card. Badges read actual published scores and change their label when a challenge succeeds.
+
+## Verify changes
+
+```sh
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+npm run lint:contracts
+npm run test:contracts
+npm test
+npm run typecheck
+npm run lint
+npm run build
+npm run contracts:verify
+```
+
+Direct tests cover every contract, malformed evidence, authorization, settlement, sampling, confidence intervals and the error set comparator. Live Studio integration tests use separate assay and vault instances. Their fixtures never become application leaderboard records.
+
+The email relay is custodial: it is trusted to act for sponsored identities. Direct contract users authorize themselves by sender address. The public account identifier is a keyed hash of the Privy identity, so the application does not write email addresses to contracts.

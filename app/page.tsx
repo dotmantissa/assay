@@ -1,7 +1,125 @@
-import Link from 'next/link';
-import { ArrowUpRight,Scale,ShieldCheck,FileText,Activity } from 'lucide-react';
-import { records } from '@/lib/records';
-import { Ledger } from '@/components/ledger';
-import { Fingerprint } from '@/components/fingerprint';
-export const dynamic='force-dynamic';
-export default async function Home(){const data=await records();const published=data.runs.filter(r=>r.status==='published');const items=published.reduce((sum,r)=>sum+r.excluded.length,0);return <div className="home-grid"><div className="main-column"><section className="intro"><div className="intro-caption"><span className="seal-line"/> The independent assay office</div><h1>Numbers deserve<br/><em>a second opinion.</em></h1><p>Anyone can publish a score. Here, the answers do the talking.<br className="desktop-break"/> Independent validators. Public evidence. Room to disagree.</p><Link href="/about" className="text-link">See what goes into a verdict <ArrowUpRight size={17}/></Link></section><div className="metrics"><div><strong>{published.length}</strong><span>Verified runs</span></div><div><strong>{data.benchmarks.length}</strong><span>Public benchmarks</span></div><div><strong>{items}</strong><span>Answers examined</span></div></div>{!data.available&&<div className="notice" role="status"><Activity size={19}/><p>The public index is taking a moment. Scores will appear when the connection returns.</p></div>}<Ledger runs={data.runs} benchmarks={data.benchmarks}/><div className="bottom-note"><Scale size={23}/><p>A great score should stand up to a hard question.<br/><span>Anyone can request a fresh assay. Every round stays public.</span></p></div></div><aside className="evidence-rail"><div className="rail-title"><FileText size={18}/><h2>The anatomy of proof</h2></div><div className="fingerprint-paper"><span className="paper-caption">The assay fingerprint</span><Fingerprint/><p>Every square is an answer.<br/>Every answer has a verdict.</p><div className="fingerprint-key"><span><i className="key-correct"/> Correct</span><span><i className="key-incorrect"/> Incorrect</span></div><small>This fingerprint fills with actual sampled outcomes once a run is published.</small></div><div className="rail-explainer"><ShieldCheck size={26}/><h3>Agreement has to mean something.</h3><p>Matching the total isn’t enough. Validators must also agree about which answers went wrong.</p><Link href="/about#comparison">Read the comparison rule <ArrowUpRight size={15}/></Link></div><div className="network-note"><span className="status-dot"/><h3>A real test. An open record.</h3><p>Studio runs are sponsored. Sign in with email and let us handle the transactions.</p><p className="fine-print">Native bonds are disabled on this gasless deployment. Scores carry no financial backing.</p></div></aside></div>;}
+import Link from "next/link";
+import {
+  ArrowUpRight,
+  Scale,
+  ShieldCheck,
+  FileText,
+  Activity,
+} from "lucide-react";
+import { records } from "@/lib/records";
+import { Ledger } from "@/components/ledger";
+import { Fingerprint } from "@/components/fingerprint";
+export const dynamic = "force-dynamic";
+export default async function Home() {
+  const data = await records();
+  const published = data.runs.filter((r) => r.status === "published");
+  const items = published.reduce((sum, r) => sum + r.excluded.length, 0);
+  return (
+    <div className="home-grid">
+      <div className="main-column">
+        <section className="intro">
+          <div className="intro-caption">
+            <span className="seal-line" /> The independent assay office
+          </div>
+          <h1>
+            Numbers deserve
+            <br />
+            <em>a second opinion.</em>
+          </h1>
+          <p>
+            Anyone can publish a score. Here, the answers do the talking.
+            <br className="desktop-break" /> Independent validators. Public
+            evidence. Room to disagree.
+          </p>
+          <Link href="/about" className="text-link">
+            See what goes into a verdict <ArrowUpRight size={17} />
+          </Link>
+        </section>
+        <div className="metrics">
+          <div>
+            <strong>{published.length}</strong>
+            <span>Verified runs</span>
+          </div>
+          <div>
+            <strong>{data.benchmarks.length}</strong>
+            <span>Public benchmarks</span>
+          </div>
+          <div>
+            <strong>{items}</strong>
+            <span>Answers examined</span>
+          </div>
+        </div>
+        {!data.available && (
+          <div className="notice" role="status">
+            <Activity size={19} />
+            <p>
+              The public index is taking a moment. Scores will appear when the
+              connection returns.
+            </p>
+          </div>
+        )}
+        <Ledger runs={data.runs} benchmarks={data.benchmarks} />
+        <div className="bottom-note">
+          <Scale size={23} />
+          <p>
+            A great score should stand up to a hard question.
+            <br />
+            <span>
+              Anyone can request a fresh assay. Every round stays public.
+            </span>
+          </p>
+        </div>
+      </div>
+      <aside className="evidence-rail">
+        <div className="rail-title">
+          <FileText size={18} />
+          <h2>The anatomy of proof</h2>
+        </div>
+        <div className="fingerprint-paper">
+          <span className="paper-caption">The assay fingerprint</span>
+          <Fingerprint />
+          <p>
+            Every square is an answer.
+            <br />
+            Every answer has a verdict.
+          </p>
+          <div className="fingerprint-key">
+            <span>
+              <i className="key-correct" /> Correct
+            </span>
+            <span>
+              <i className="key-incorrect" /> Incorrect
+            </span>
+          </div>
+          <small>
+            This fingerprint fills with actual sampled outcomes once a run is
+            published.
+          </small>
+        </div>
+        <div className="rail-explainer">
+          <ShieldCheck size={26} />
+          <h3>Agreement has to mean something.</h3>
+          <p>
+            Matching the total isn’t enough. Validators must also agree about
+            which answers went wrong.
+          </p>
+          <Link href="/about#comparison">
+            Read the comparison rule <ArrowUpRight size={15} />
+          </Link>
+        </div>
+        <div className="network-note">
+          <span className="status-dot" />
+          <h3>A real test. An open record.</h3>
+          <p>
+            Studio runs are sponsored. Sign in with email and let us handle the
+            transactions.
+          </p>
+          <p className="fine-print">
+            Native bonds are disabled on this gasless deployment. Scores carry
+            no financial backing.
+          </p>
+        </div>
+      </aside>
+    </div>
+  );
+}

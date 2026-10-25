@@ -1,0 +1,44 @@
+{
+  "network": "studionet",
+  "rpc": "https://studio.genlayer.com/api",
+  "addresses": {
+    "registry": "0xAE6a4eEB8FC05b97E6cc9cAf065F327B05cAa106",
+    "vault": "0xD742639B3775f13C7e8c54d68958edf30AC94eC0",
+    "office": "0x791b48935c2Cc957C55BFad9153647d6A797ce16"
+  },
+  "transactions": {
+    "registry": "0xf260327683e366785b946366ccfac7b2cc74a43cf932361e4e5a61254b005544",
+    "vault": "0x60f79942435228e162f068defd14f51294f56a2c3691da564926ec7823bad7c6",
+    "office": "0x78cfcdfde6aa92e6ad1ba8c8068327ca2e26026c99d3b0fcb83b099076282e90",
+    "configure": "0x674bbe14d120df3691ce11381beaed88e7e5147bffdd50e6045802a11fd3276b"
+  },
+  "history": [
+    {
+      "addresses": {
+        "registry": "0xAE6a4eEB8FC05b97E6cc9cAf065F327B05cAa106",
+        "vault": "0xAB7e9A010695317DA66aF0321FF45fe7da69406e",
+        "office": "0x20Ad605f06C8ef5D279709c1aD22b3baC9CDFb4d"
+      },
+      "transactions": {
+        "registry": "0xf260327683e366785b946366ccfac7b2cc74a43cf932361e4e5a61254b005544",
+        "vault": "0x0a3c6d493ca7605b7ff9d5c4a5c40dda14f9ac2b550eeff955481f50581cf529",
+        "office": "0xe413f3a8a69b6ff0fefdd4c4caf2432cfcab7a147bc325cccf3b2dc609c0b19f",
+        "configure": "0x8e0433ff8e32f7228aa99482544f0643987b93d5926a25839b9081dc8818689f"
+      }
+    },
+    {
+      "addresses": {
+        "registry": "0xAE6a4eEB8FC05b97E6cc9cAf065F327B05cAa106",
+        "vault": "0x1218aeA4780222BFB52bBdbeF61B90a60AA3DFDf",
+        "office": "0x6abD103CBE70238Cc9928E9335E76943E2872D3A"
+      },
+      "transactions": {
+        "registry": "0xf260327683e366785b946366ccfac7b2cc74a43cf932361e4e5a61254b005544",
+        "vault": "0x662f1a079132caf4df224e610c62fd327dd64ef22d569da945d3d57b51bfa10e",
+        "office": "0x591f89fbe46440be2f02d70223aaaf3e01c28f65dd4c0c1c6da40c1f00118973",
+        "configure": "0x2fd90178b4550243e34738aa7c63e857d6ceb46f8830d5beefa1a1b9e49190df"
+      }
+    }
+  ],
+  "wiringVerified": true
+}

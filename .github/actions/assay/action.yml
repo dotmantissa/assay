@@ -21,7 +21,7 @@ inputs:
     required: true
   timeout-minutes:
     description: Maximum wait for validator consensus
-    default: '45'
+    default: "45"
 outputs:
   record-url:
     description: Public immutable run record

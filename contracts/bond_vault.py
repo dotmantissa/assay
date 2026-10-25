@@ -26,22 +26,23 @@ class BondVault(gl.Contract):
         self.office = Address(office)
         self.configured = True
 
-    def _actor(self, actor: str) -> None:
+    def _actor(self, actor: str) -> str:
         if not actor or len(actor) > 100:
             raise gl.vm.UserError('[EXPECTED] Invalid account')
         if gl.message.sender_address != self.owner and actor.lower() != str(gl.message.sender_address).lower():
             raise gl.vm.UserError('[EXPECTED] Account not authorized')
+        return str(Address(actor)) if actor.startswith('0x') and len(actor) == 42 else actor
 
     @gl.public.write
     def deposit(self, actor: str) -> None:
-        self._actor(actor)
+        actor = self._actor(actor)
         if gl.message.value == 0:
             raise gl.vm.UserError('[EXPECTED] Positive deposit required')
         self.balances[actor] = u256(self.balances.get(actor, u256(0)) + gl.message.value)
 
     @gl.public.write
     def lock(self, lock_id: str, actor: str, amount: int) -> None:
-        self._actor(actor)
+        actor = self._actor(actor)
         if not lock_id or len(lock_id) > 100 or lock_id in self.locks or amount < int(self.minimum):
             raise gl.vm.UserError('[EXPECTED] Invalid bond lock')
         available = int(self.balances.get(actor, u256(0)))
@@ -71,15 +72,21 @@ class BondVault(gl.Contract):
         self.balances[beneficiary] = u256(int(self.balances.get(beneficiary, u256(0))) + amount)
         self.settled[challenge_id] = True
 
-    @gl.public.write
-    def withdraw(self, amount: int, recipient: str) -> None:
-        actor = str(gl.message.sender_address)
+    def _withdraw(self, actor: str, amount: int, recipient: str) -> None:
         available = int(self.balances.get(actor, u256(0)))
         if amount <= 0 or amount > available:
             raise gl.vm.UserError('[EXPECTED] Insufficient withdrawable balance')
         destination = Address(recipient)
         self.balances[actor] = u256(available - amount)
         gl.get_contract_at(destination).emit_transfer(value=u256(amount), on='finalized')
+
+    @gl.public.write
+    def withdraw(self, amount: int, recipient: str) -> None:
+        self._withdraw(str(gl.message.sender_address), amount, recipient)
+
+    @gl.public.write
+    def withdraw_for(self, actor: str, amount: int, recipient: str) -> None:
+        self._withdraw(self._actor(actor), amount, recipient)
 
     @gl.public.view
     def get_lock(self, lock_id: str) -> dict:
@@ -89,7 +96,8 @@ class BondVault(gl.Contract):
 
     @gl.public.view
     def get_balance(self, actor: str) -> int:
-        return int(self.balances.get(actor, u256(0)))
+        identity = str(Address(actor)) if actor.startswith('0x') and len(actor) == 42 else actor
+        return int(self.balances.get(identity, u256(0)))
 
     @gl.public.view
     def configuration(self) -> dict:

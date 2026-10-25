@@ -109,3 +109,54 @@ def test_sample_and_confidence_math(suite):
 def test_malformed_grades_rejected(suite, direct_vm, result):
     with direct_vm.expect_revert('LLM_ERROR'):
         module(suite[2]).grade_response(result,'x',1)
+
+def test_successful_challenge_slashes_materially_lower_score(suite,direct_vm,direct_bob,monkeypatch):
+    registry,vault,office=suite
+    registry.get_benchmark('b')['sample_size']=4
+    ready(suite,monkeypatch)
+    direct_vm.mock_llm('.*independent Assay examiner.*',{'score':1,'incorrect':False,'reason':'Correct.'})
+    for i in range(4):office.grade_item('r',i)
+    office.finalize('r')
+    direct_vm.sender=direct_bob
+    actor=str(direct_bob)
+    vault.lock('c',actor,0);office.challenge('r','c',actor);office.start_round('r','0x'+'ef'*32)
+    direct_vm.clear_mocks()
+    from conftest import DATA,OUTPUTS,URL,OUT_URL,evidence
+    evidence(direct_vm,URL,DATA);evidence(direct_vm,OUT_URL,OUTPUTS)
+    direct_vm.mock_llm('.*independent Assay examiner.*',{'score':0,'incorrect':True,'reason':'Incorrect.'})
+    for i in range(4):office.grade_item('r',i)
+    office.finalize('r')
+    assert office.get_run('r')['status']=='slashed'
+    assert office.get_run('r')['score_bps']==0
+    assert office.get_round('r',1)['challenge_successful']
+
+
+def test_receipt_binding_rejects_forged_method(suite,direct_vm):
+    import base64,json
+    office=suite[2];m=module(office);run=office.get_run('r')
+    tx={'status':'FINALIZED','from_address':run['sender'],'to_address':str(office.address),
+        'consensus_data':{'leader_receipt':[{'execution_result':'SUCCESS'}]},
+        'data':{'calldata':base64.b64encode(m.calldata.encode({'method':'unrelated','args':[]})).decode()}}
+    direct_vm.mock_web('https://studio.genlayer.com/api',{'response':{'status':200,'headers':{},'body':json.dumps({'result':tx}).encode()},'method':'POST'})
+    with direct_vm.expect_revert('does not commit'):
+        office.start_round('r','0x'+'ab'*32)
+
+
+def test_wilson_known_interval(suite):
+    interval=module(suite[2]).confidence([1]*10,1)
+    assert 7200<=interval['low_bps']<=7250
+    assert interval['high_bps']==10000
+    mixed=module(suite[2]).confidence([0,1]*5,1)
+    assert 2300<=mixed['low_bps']<=2400
+    assert 7600<=mixed['high_bps']<=7700
+
+def test_receipt_binding_accepts_exact_commitment(suite,direct_vm):
+    import base64,json
+    office=suite[2];m=module(office);run=office.get_run('r')
+    args=[run['id'],run['benchmark_id'],run['outputs_url'],run['outputs_hash'],run['model'],run['owner']]
+    tx={'status':'FINALIZED','from_address':run['sender'],'to_address':str(office.address),
+        'consensus_data':{'leader_receipt':[{'execution_result':'SUCCESS'}]},
+        'data':{'calldata':base64.b64encode(m.calldata.encode({'method':'submit_run','args':args})).decode()}}
+    direct_vm.mock_web('https://studio.genlayer.com/api',{'response':{'status':200,'headers':{},'body':json.dumps({'result':tx}).encode()},'method':'POST'})
+    office.start_round('r','0x'+'ab'*32)
+    assert office.get_round('r',0)['seed']=='0x'+'ab'*32

@@ -1,0 +1,10 @@
+.git
+node_modules
+.next
+.env*
+.venv
+.local
+TASKS.md
+AGENT.md
+AGENTS.md
+coverage

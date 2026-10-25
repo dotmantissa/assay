@@ -89,9 +89,10 @@ class AssayOffice(gl.Contract):
         self.vault = Address(vault)
         self.relay = gl.message.sender_address
 
-    def _actor(self, actor: str) -> None:
+    def _actor(self, actor: str) -> str:
         if not actor or len(actor) > 100 or (gl.message.sender_address != self.relay and actor.lower() != str(gl.message.sender_address).lower()):
             raise gl.vm.UserError('[EXPECTED] Account not authorized')
+        return str(Address(actor)) if actor.startswith('0x') and len(actor) == 42 else actor
 
     def _benchmark(self, benchmark_id: str) -> dict:
         return gl.get_contract_at(self.registry).view().get_benchmark(benchmark_id)
@@ -103,7 +104,7 @@ class AssayOffice(gl.Contract):
 
     @gl.public.write
     def submit_run(self, run_id: str, benchmark_id: str, outputs_url: str, outputs_hash: str, model: str, actor: str) -> None:
-        self._actor(actor)
+        actor = self._actor(actor)
         if not run_id or len(run_id) > 80 or run_id in self.runs or not 1 <= len(model) <= 120:
             raise gl.vm.UserError('[EXPECTED] Invalid or existing run')
         if not outputs_url.startswith('https://') or len(outputs_url) > 2048 or len(outputs_hash) != 64 or any(c not in '0123456789abcdef' for c in outputs_hash):
@@ -127,7 +128,7 @@ class AssayOffice(gl.Contract):
 
     @gl.public.write
     def challenge(self, run_id: str, challenge_id: str, actor: str) -> None:
-        self._actor(actor)
+        actor = self._actor(actor)
         run = self.get_run(run_id)
         if run['status'] != 'published' or run['owner'] == actor or not challenge_id or len(challenge_id) > 80:
             raise gl.vm.UserError('[EXPECTED] Run is unavailable for challenge')

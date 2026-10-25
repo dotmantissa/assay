@@ -1,2 +1,17 @@
-import { equalSecret } from '@/lib/auth';import { processNext,syncRecords } from '@/lib/jobs';
-export async function POST(req:Request) {const secret=process.env.CRON_SECRET;if(!secret||!equalSecret(req.headers.get('authorization')||'',`Bearer ${secret}`))return new Response('Unauthorized',{status:401});try{await processNext();await syncRecords();return Response.json({ok:true});}catch{return Response.json({error:'Worker unavailable'},{status:503});}}
+import { equalSecret } from "@/lib/auth";
+import { processNext, syncRecords } from "@/lib/jobs";
+export async function POST(req: Request) {
+  const secret = process.env.CRON_SECRET;
+  if (
+    !secret ||
+    !equalSecret(req.headers.get("authorization") || "", `Bearer ${secret}`)
+  )
+    return new Response("Unauthorized", { status: 401 });
+  try {
+    await processNext();
+    await syncRecords();
+    return Response.json({ ok: true });
+  } catch {
+    return Response.json({ error: "Worker unavailable" }, { status: 503 });
+  }
+}

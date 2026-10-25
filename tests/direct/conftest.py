@@ -24,7 +24,7 @@ def suite(direct_vm, direct_deploy, direct_alice, monkeypatch):
         'scale':1,'tolerance_bps':0,'overlap_bps':10000,'item_count':8}
     locks = {}
     def lock(lock_id, actor, amount):
-        locks[lock_id] = {'id':lock_id,'owner':actor,'amount':amount,'settled':False}
+        locks[lock_id] = {'id':lock_id,'owner':str(__import__('genlayer').Address(actor)) if actor.startswith('0x') else actor,'amount':amount,'settled':False}
     vault = SimpleNamespace(lock=lock, get_lock=lambda key: locks[key], settle=lambda *args: None)
     registry = SimpleNamespace(get_benchmark=lambda key: benchmark)
     monkeypatch.setattr(gl._cached_gl if hasattr(gl, '_cached_gl') else gl, 'get_contract_at',

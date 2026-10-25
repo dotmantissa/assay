@@ -63,3 +63,17 @@ def test_cannot_overdraw_or_reuse_lock(direct_vm, direct_deploy, direct_alice):
     vault.lock('r',('0x' + direct_alice.hex()),0)
     with direct_vm.expect_revert('Invalid'):
         vault.lock('r',('0x' + direct_alice.hex()),0)
+
+def test_withdrawal_preserves_checks_and_emits_finalized_transfer(direct_vm,direct_deploy,direct_alice,monkeypatch):
+    from types import SimpleNamespace
+    direct_vm.sender=direct_alice
+    vault=direct_deploy('contracts/bond_vault.py',0)
+    from genlayer import gl
+    emitted=[]
+    monkeypatch.setattr(gl._cached_gl if hasattr(gl,'_cached_gl') else gl,'get_contract_at',lambda address:SimpleNamespace(emit_transfer=lambda **kwargs:emitted.append(kwargs)))
+    direct_vm.value=50;vault.deposit('0x'+direct_alice.hex());direct_vm.value=0
+    vault.withdraw(20,'0x'+'11'*20)
+    assert vault.get_balance('0x'+direct_alice.hex())==30
+    assert emitted[0]['on']=='finalized'
+    assert emitted[0]['value']==20
+    with direct_vm.expect_revert('Insufficient'):vault.withdraw(31,'0x'+'11'*20)
