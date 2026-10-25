@@ -32,7 +32,15 @@ Use Node.js 20.9 or later and Python 3.12 or later.
 
 The worker uses durable database leases, serializes the shared signer and saves signed transactions before broadcasting. A restart resumes the same transaction. Failed steps remain visible and can be retried from the job page.
 
-For production, run `npm run build`, `npm start` and the separate worker. Put an HTTPS reverse proxy in front of the application with a 2 MB request limit. A Node hosting service with a persistent worker works well. Serverless hosting can call `POST /api/cron` with the cron bearer secret instead, but it must give each invocation enough time to advance a job. Do not deploy this as a static export.
+For production on a Node host, run `npm run build`, `npm start` and the separate worker. Put an HTTPS reverse proxy in front of the application with a 2 MB request limit. Do not deploy this as a static export.
+
+## Vercel hosting
+
+The public application is at https://assay-office.vercel.app. Set the production environment values from `.env.example`, including the three deployed contract addresses and `APP_URL` pointing to that origin. Leave `ASSAY_HTTP_TRANSPORT` empty; the curl option is only a local networking workaround. Database credentials and signer keys stay in Vercel encrypted secrets.
+
+Vercel submissions start a worker after the HTTP response. Each invocation has a 300 second limit and advances saved jobs for up to 210 seconds, with eight seconds between steps. A database lock prevents overlapping worker windows. Jobs and signed transactions survive function restarts.
+
+The `Advance assays` GitHub workflow calls the authenticated worker every five minutes. Its `ASSAY_CRON_SECRET` repository secret must match Vercel's `CRON_SECRET`. GitHub can delay scheduled runs; this is a recovery schedule rather than an exact completion deadline. Vercel also runs a daily recovery cron, which fits its Hobby plan. Both GET and POST worker requests require the same bearer secret. No public request can trigger this endpoint without authorization.
 
 Only the public Privy app ID goes into the browser bundle. Never prefix database credentials, signer keys or server secrets with `NEXT_PUBLIC_`.
 

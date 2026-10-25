@@ -5,6 +5,8 @@ import { enqueue } from "@/lib/jobs";
 import { read } from "@/lib/chain";
 import { outputSchema, fetchEvidence } from "@/lib/evidence";
 import type { Benchmark } from "@/lib/types";
+import { startHostedWorker } from "@/lib/background";
+export const maxDuration = 300;
 const schema = z
   .object({
     benchmark_id: z.string().min(1).max(80),
@@ -28,10 +30,9 @@ export async function POST(req: Request) {
       Object.keys(outputs.outputs).length !== benchmark.item_count
     )
       throw new HttpError(400, "The output hash or item count does not match");
-    return Response.json(
-      await enqueue(owner, "submit", data, req.headers.get("idempotency-key")),
-      { status: 202 },
-    );
+    const job = await enqueue(owner, "submit", data, req.headers.get("idempotency-key"));
+    startHostedWorker();
+    return Response.json(job, { status: 202 });
   } catch (error) {
     return failure(error);
   }

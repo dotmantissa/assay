@@ -2,6 +2,8 @@ import { authorize, failure, rateLimit, HttpError } from "@/lib/auth";
 import { enqueue } from "@/lib/jobs";
 import { read } from "@/lib/chain";
 import type { Run, Benchmark } from "@/lib/types";
+import { startHostedWorker } from "@/lib/background";
+export const maxDuration = 300;
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -18,15 +20,14 @@ export async function POST(
     ]);
     if (b.item_count - run.excluded.length < b.sample_size)
       throw new HttpError(409, "Every fresh sample has been used");
-    return Response.json(
-      await enqueue(
-        owner,
-        "challenge",
-        { run_id: id },
-        req.headers.get("idempotency-key"),
-      ),
-      { status: 202 },
+    const job = await enqueue(
+      owner,
+      "challenge",
+      { run_id: id },
+      req.headers.get("idempotency-key"),
     );
+    startHostedWorker();
+    return Response.json(job, { status: 202 });
   } catch (error) {
     return failure(error);
   }

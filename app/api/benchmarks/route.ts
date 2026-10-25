@@ -3,6 +3,8 @@ import { authorize, body, failure, rateLimit } from "@/lib/auth";
 import { enqueue } from "@/lib/jobs";
 import { datasetSchema, fetchEvidence } from "@/lib/evidence";
 import { createHash } from "node:crypto";
+import { startHostedWorker } from "@/lib/background";
+export const maxDuration = 300;
 const schema = z
   .object({
     name: z.string().min(1).max(120),
@@ -36,6 +38,7 @@ export async function POST(req: Request) {
       data,
       req.headers.get("idempotency-key"),
     );
+    startHostedWorker();
     return Response.json(job, { status: 202 });
   } catch (error) {
     return failure(error);

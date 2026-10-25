@@ -1,0 +1,43 @@
+name: Advance assays
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: assay-production-worker
+  cancel-in-progress: false
+
+jobs:
+  advance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Resume saved assays
+        env:
+          ASSAY_APP_URL: https://assay-office.vercel.app
+          ASSAY_CRON_SECRET: ${{ secrets.ASSAY_CRON_SECRET }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import urllib.request
+          secret = os.environ.get("ASSAY_CRON_SECRET")
+          if not secret:
+              raise SystemExit("The Assay worker secret has not been configured")
+          request = urllib.request.Request(
+              os.environ["ASSAY_APP_URL"] + "/api/cron",
+              headers={"Authorization": "Bearer " + secret},
+              method="POST",
+          )
+          try:
+              with urllib.request.urlopen(request, timeout=290) as response:
+                  if response.status != 200:
+                      raise SystemExit("The Assay worker is unavailable")
+                  print("Assay worker completed successfully")
+          except Exception:
+              raise SystemExit("The Assay worker could not finish. Its progress remains saved")
+          PY

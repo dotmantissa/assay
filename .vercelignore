@@ -1,0 +1,16 @@
+.env*
+.local/
+.venv/
+TASKS.md
+AGENT.md
+AGENTS.md
+agent.md
+agents.md
+node_modules/
+.next/
+tests/
+contracts/
+artifacts/
+coverage/
+*.log
+*.tsbuildinfo

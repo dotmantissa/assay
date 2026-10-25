@@ -1,6 +1,8 @@
 import { authorize, failure, HttpError } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { startHostedWorker } from "@/lib/background";
+export const maxDuration = 300;
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -28,6 +30,7 @@ export async function POST(
     const rows =
       await db()`UPDATE jobs SET state='queued',error=NULL,lease_until=NULL WHERE id=${id} AND owner_id=${owner} AND state='failed' RETURNING id,state`;
     if (!rows[0]) throw new HttpError(409, "This job is not awaiting a retry");
+    startHostedWorker();
     return Response.json(rows[0]);
   } catch (error) {
     return failure(error);
