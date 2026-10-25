@@ -4,8 +4,9 @@ import { readFileSync } from 'node:fs';
 for (const [name, address] of Object.entries(addresses())) {
   if (!address) throw new Error(`Missing ${name}`);
   const c = client();
-  await c.getContractSchema(address as `0x${string}`);
-  const code = await c.getContractCode(address as `0x${string}`);
+  await c.request({ method: 'gen_getContractSchema', params: [address] } as never);
+  const encoded = await c.request({ method: 'gen_getContractCode', params: [address] } as never) as string;
+  const code = Buffer.from(encoded, 'base64').toString('utf8');
   const file = { registry: 'benchmark_registry', vault: 'bond_vault', office: 'assay_office' }[name];
   const hash = (s: string | Buffer) => createHash('sha256').update(s).digest('hex');
   const local = readFileSync(`contracts/${file}.py`);

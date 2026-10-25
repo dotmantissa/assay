@@ -1,0 +1,42 @@
+name: Assay a model release
+description: Commit model output evidence and wait for a public GenLayer assay record
+inputs:
+  app-url:
+    description: Public HTTPS address of your Assay installation
+    required: true
+  api-key:
+    description: Assay API key stored in repository secrets
+    required: true
+  benchmark-id:
+    description: Registered benchmark identifier
+    required: true
+  model:
+    description: Model name including the release version
+    required: true
+  outputs-url:
+    description: Public HTTPS URL of complete output JSON
+    required: true
+  outputs-hash:
+    description: Lowercase SHA256 of the exact output JSON bytes
+    required: true
+  timeout-minutes:
+    description: Maximum wait for validator consensus
+    default: '45'
+outputs:
+  record-url:
+    description: Public immutable run record
+    value: ${{ steps.submit.outputs.record-url }}
+runs:
+  using: composite
+  steps:
+    - id: submit
+      shell: bash
+      env:
+        ASSAY_APP_URL: ${{ inputs.app-url }}
+        ASSAY_API_KEY: ${{ inputs.api-key }}
+        ASSAY_BENCHMARK: ${{ inputs.benchmark-id }}
+        ASSAY_MODEL: ${{ inputs.model }}
+        ASSAY_OUTPUTS_URL: ${{ inputs.outputs-url }}
+        ASSAY_OUTPUTS_HASH: ${{ inputs.outputs-hash }}
+        ASSAY_TIMEOUT: ${{ inputs.timeout-minutes }}
+      run: node "${{ github.action_path }}/submit.mjs"

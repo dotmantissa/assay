@@ -32,7 +32,7 @@ for (const name of ['registry', 'vault', 'office']) {
   const tx = await wait(state.transactions[name]);
   state.addresses[name] = tx.to_address || tx.recipient;
   if (!state.addresses[name]) throw new Error('Receipt has no deployed address');
-  await c.getContractSchema(state.addresses[name]);
+  await c.request({ method: 'gen_getContractSchema', params: [state.addresses[name]] } as never);
   save(); console.log(`${name} verified: ${state.addresses[name]}`);
 }
 if (!state.wiringVerified) {
