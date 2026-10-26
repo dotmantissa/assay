@@ -13,8 +13,8 @@ describe("Queue progress and transaction recovery", () => {
     await processNext();
     expect(queries()).toContain("next_poll_at<=now()");
     expect(queries()).toContain("ORDER BY next_poll_at,updated_at,created_at");
-    expect(sql.mock.calls[2][1]).toBe("working");
-    expect(sql.mock.calls[2]).toContain(8);
+    expect(sql.mock.calls[3][1]).toBe("working");
+    expect(sql.mock.calls[3]).toContain(8);
     expect(write).not.toHaveBeenCalled();
   });
   it("discards only a terminally rejected broadcast so a retry can sign afresh", async () => {
@@ -57,6 +57,7 @@ describe("Finalized index reconciliation", () => {
     read.mockResolvedValueOnce(1).mockResolvedValueOnce([{id:"b"}]).mockResolvedValueOnce({run_count:0});
     await syncRecords();
     expect(sql.transaction).toHaveBeenCalledTimes(1);
+    expect(queries()).toContain("WHERE kind='maintain' AND state='failed'");
     expect(queries()).toContain("DELETE FROM public_records");
     expect(sql.mock.calls.flat().join()).toContain('"finality":"finalized"');
   });

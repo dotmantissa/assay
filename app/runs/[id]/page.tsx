@@ -68,7 +68,7 @@ export default async function RunPage({
               </dd>
             </div>
             <div>
-              <dt>Distinct answers examined</dt>
+              <dt>Committed dataset items</dt>
               <dd>{run.excluded.length}</dd>
             </div>
           </dl>

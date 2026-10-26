@@ -76,9 +76,14 @@ export async function syncRecords() {
       await enqueue("__maintenance__", "maintain", {run_id: run.id}, `maintain:${run.id}:${run.pending_operation || "close"}`);
   }
   const failed = await sql`SELECT id FROM jobs WHERE kind IN ('submit','challenge') AND state='failed' AND created_at<now()-interval '24 hours'`;
-  for (const job of failed)
-    if (await read<boolean>("vault", "lock_exists", [job.id]) && !Object.keys(await read<Record<string, unknown>>("office", "get_bond_use", [job.id])).length)
+  for (const job of failed) {
+    if (!await read<boolean>("vault", "lock_exists", [job.id])) continue;
+    const bond = await read<{expires_at: number}>("vault", "get_lock", [job.id]);
+    if (Date.now()/1000 >= bond.expires_at && !Object.keys(await read<Record<string, unknown>>("office", "get_bond_use", [job.id])).length)
       await enqueue("__maintenance__", "maintain", {lock_id: job.id}, `expire:${job.id}`);
+  }
+  // Maintenance is public protocol recovery and must resume automatically after an RPC outage.
+  await sql`UPDATE jobs SET state='queued',error=NULL,failure_kind=NULL,lease_until=NULL,next_poll_at=now(),tx_started_at=CASE WHEN tx_hash IS NULL AND signed_tx IS NULL THEN NULL ELSE now() END WHERE kind='maintain' AND state='failed' AND updated_at<now()-interval '5 minutes'`;
 
 }
 
@@ -109,6 +114,7 @@ async function advanceNext() {
       return true;
     }
     if (job.tx_hash) {
+      await sql`UPDATE jobs SET tx_started_at=COALESCE(tx_started_at,now()) WHERE id=${job.id} AND lease_token=${token}`;
       const tx = await receipt(job.tx_hash);
       if (!tx) {
         await update("working", job.step, job.tx_hash, true);

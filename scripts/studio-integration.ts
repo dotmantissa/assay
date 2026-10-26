@@ -162,7 +162,22 @@ await write("cancelCommit",office,"submit_run",["cancelled-run","fixture",base+"
 await write("cancel",office,"cancel_run",["cancelled-run","integration-submitter"]);
 await settled("cancelled-run:close");
 if ((await read<Run>(office,"get_run",["cancelled-run"])).status !== "cancelled") throw new Error("Cancellation not acknowledged");
-await write("withdraw",vault,"withdraw_for",["integration-submitter",10,c.account!.address]);
+state.withdrawRecipient ||= "0x"+createHash("sha256").update("Assay runtime withdrawal:"+revision).digest("hex").slice(0,40);
+if (state.withdrawBefore === undefined) {
+  state.withdrawBefore = String(await c.getBalance({address:state.withdrawRecipient}));
+  save();
+}
+await write("withdraw",vault,"withdraw_for",["integration-submitter",10,state.withdrawRecipient]);
+for (let attempt=0;attempt<40;attempt++) {
+  const balance = await c.getBalance({address:state.withdrawRecipient});
+  if (balance >= BigInt(state.withdrawBefore)+10n) {
+    state.checks.nativeWithdrawal = "SUCCESS";
+    state.withdrawDelta = String(balance-BigInt(state.withdrawBefore));
+    break;
+  }
+  await new Promise(resolve=>setTimeout(resolve,15000));
+}
+if (state.checks.nativeWithdrawal !== "SUCCESS") throw new Error("Native withdrawal transfer not yet verified");
 state.original = original; state.challenge = challenged;
 state.checks.fullCoverage = "SUCCESS"; state.checks.fundedEscrow = "SUCCESS"; state.checks.settlement = "SUCCESS";
 state.checks.cancellation = "SUCCESS"; state.checks.sourceRevision = revision;

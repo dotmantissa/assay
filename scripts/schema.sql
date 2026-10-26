@@ -40,3 +40,5 @@ ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_kind_check;
 ALTER TABLE jobs ADD CONSTRAINT jobs_kind_check CHECK(kind IN ('publish','submit','challenge','maintain'));
 
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS commitment_tx text;
+
+UPDATE jobs SET tx_started_at=updated_at WHERE (tx_hash IS NOT NULL OR signed_tx IS NOT NULL) AND tx_started_at IS NULL;
