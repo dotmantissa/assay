@@ -7,6 +7,15 @@ import { Fingerprint } from "@/components/fingerprint";
 import { ChallengeButton } from "@/components/challenge";
 import { percent } from "@/lib/records";
 const challengeOpen = (run: Run) => Date.now() / 1000 < run.challenge_until;
+const closedWithoutVerdict = (run: Run) => ["cancelled", "inconclusive"].includes(run.status) ||
+  (run.status === "releasing" && ["cancelled", "inconclusive"].includes(run.terminal_status || ""));
+const verdictLabel = (run: Run) => ({
+  published: "Finalized artifact verdict", completed: "Finalized artifact verdict",
+  slashed: "Score challenged successfully", inconclusive: "Assessment inconclusive",
+  cancelled: "Assessment cancelled", releasing: `${run.terminal_status || "Assessment closed"} · bond release pending`,
+  settling: "Challenge settlement pending", challenged: "Challenge awaiting grading",
+  grading: "Grading in progress", committed: "Answers committed",
+}[run.status] || "Assessment pending");
 export const dynamic = "force-dynamic";
 export default async function RunPage({
   params,
@@ -36,11 +45,7 @@ export default async function RunPage({
           <p>Submitter supplied label · model attribution unverified</p>
           <p>
             {benchmark.name} ·{" "}
-            {["published", "completed"].includes(run.status)
-              ? "Finalized artifact verdict"
-              : run.status === "slashed"
-                ? "Score challenged successfully"
-                : "Assay in progress"}
+            {verdictLabel(run)}
           </p>
         </div>
         {run.score_bps !== null && (
@@ -83,6 +88,8 @@ export default async function RunPage({
                 <span>
                   {round.score_bps !== undefined
                     ? `${percent(round.score_bps)}%`
+                    : round.status === "inconclusive" ? "Inconclusive"
+                    : round.status === "cancelled" ? "Cancelled"
                     : "Grading in progress"}
                 </span>
               </div>
@@ -139,7 +146,7 @@ export default async function RunPage({
           ))}
           {!rounds.length && (
             <div className="notice">
-              Outputs are committed. Grading has not started yet.
+              {closedWithoutVerdict(run) ? "The assessment closed before grading began." : "Outputs are committed. Grading has not started yet."}
             </div>
           )}
         </div>
@@ -156,7 +163,9 @@ export default async function RunPage({
             <p>
               {run.status === "published"
                 ? "The seven day challenge window has closed."
-                : "Challenges open after a verdict is published."}
+                : ["completed", "slashed", "cancelled", "inconclusive", "releasing"].includes(run.status)
+                  ? "This assessment is closed for challenges."
+                  : "Challenges open after a verdict is published."}
             </p>
           )}
           <p className="fine-print">
@@ -185,7 +194,7 @@ export default async function RunPage({
               <code>{`[![Artifact grade](${process.env.APP_URL || ""}/api/badges/${id})](${process.env.APP_URL || ""}/runs/${id})`}</code>
             </>
           ) : (
-            <p>Your badge appears after the assay is published.</p>
+            <p>{closedWithoutVerdict(run) ? "A cancelled or inconclusive assessment has no grade badge." : "Your badge appears after the assay is published."}</p>
           )}
           <Link className="text-link" href="/about">
             How this verdict was reached
