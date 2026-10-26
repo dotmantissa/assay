@@ -2,10 +2,13 @@
 from genlayer import *
 import hashlib
 import json
+import datetime
 
 
 def locked_json(url: str, expected_hash: str) -> dict:
     response = gl.nondet.web.get(url)
+    if response.status >= 500 or response.status == 429:
+        raise gl.vm.UserError('[TRANSIENT] Evidence temporarily unavailable')
     if response.status != 200:
         raise gl.vm.UserError('[EXTERNAL] Evidence unavailable')
     if len(response.body) > 2_000_000:
@@ -23,8 +26,8 @@ def locked_json(url: str, expected_hash: str) -> dict:
 
 def validate_dataset(data: dict) -> int:
     items = data.get('items')
-    if not isinstance(items, list) or not 1 <= len(items) <= 10000:
-        raise gl.vm.UserError('[EXPECTED] Dataset needs 1 to 10000 items')
+    if not isinstance(items, list) or not 1 <= len(items) <= 100:
+        raise gl.vm.UserError('[EXPECTED] Dataset needs 1 to 100 items')
     seen = set()
     for item in items:
         if not isinstance(item, dict) or not isinstance(item.get('id'), str) or not item['id'] or item['id'] in seen:
@@ -34,8 +37,19 @@ def validate_dataset(data: dict) -> int:
         if len(json.dumps(item)) > 24000:
             raise gl.vm.UserError('[EXPECTED] Item too large')
         sources = item.get('sources', [])
-        if not isinstance(sources, list) or len(sources) > 3 or any(not isinstance(s, str) or not s.startswith('https://') for s in sources):
-            raise gl.vm.UserError('[EXPECTED] At most three HTTPS sources per item')
+        if not isinstance(sources, list) or len(sources) > 3:
+            raise gl.vm.UserError('[EXPECTED] At most three committed sources per item')
+        for source in sources:
+            if not isinstance(source, dict) or set(source) != {'url', 'text', 'sha256', 'as_of'} or not isinstance(source['url'], str) or not source['url'].startswith('https://') or len(source['url']) > 2048 or not isinstance(source['text'], str) or not source['text'] or len(source['text'].encode()) > 18000:
+                raise gl.vm.UserError('[EXPECTED] Sources require committed text, SHA256 and as_of')
+            if hashlib.sha256(source['text'].encode()).hexdigest() != source['sha256']:
+                raise gl.vm.UserError('[EXPECTED] Source snapshot hash mismatch')
+            try:
+                stamp = datetime.datetime.fromisoformat(source['as_of'])
+                if stamp.tzinfo is None:
+                    raise ValueError('Timezone required')
+            except Exception:
+                raise gl.vm.UserError('[EXPECTED] Source as_of requires an ISO timestamp with timezone')
         seen.add(item['id'])
     return len(items)
 
@@ -63,14 +77,19 @@ class BenchmarkRegistry(gl.Contract):
         def verify_evidence():
             return validate_dataset(locked_json(dataset_url, content_hash))
         count = gl.eq_principle.strict_eq(verify_evidence)
-        if sample_size > count:
-            raise gl.vm.UserError('[EXPECTED] Sample larger than dataset')
+        if sample_size != count:
+            raise gl.vm.UserError('[EXPECTED] Full dataset coverage required')
         self.benchmarks[benchmark_id] = json.dumps({'id': benchmark_id, 'name': name, 'dataset_url': dataset_url,
             'content_hash': content_hash, 'rubric': rubric, 'sample_size': sample_size, 'scale': scale,
             'tolerance_bps': tolerance_bps, 'overlap_bps': overlap_bps, 'item_count': count,
-            'sampling_rule': 'SHA256 ranking without replacement from verified commitment transaction hash',
+            'sampling_rule': 'Full committed dataset, every item in every round',
+            'evidence_rule': 'Only committed reference text; source as_of is publisher declared', 'protocol': 2,
             'publisher': str(gl.message.sender_address)})
         self.order.append(benchmark_id)
+
+    @gl.public.view
+    def benchmark_exists(self, benchmark_id: str) -> bool:
+        return benchmark_id in self.benchmarks
 
     @gl.public.view
     def get_benchmark(self, benchmark_id: str) -> dict:
