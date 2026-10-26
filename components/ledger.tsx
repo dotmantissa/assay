@@ -108,7 +108,7 @@ export function Ledger({
                   </td>
                   <td>
                     <ShieldCheck size={15} />
-                    {r.survived}
+                    {Math.max(0, r.round_count - 1)}
                   </td>
                 </tr>
               ))}

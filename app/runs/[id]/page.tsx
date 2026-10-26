@@ -63,7 +63,7 @@ export default async function RunPage({
             <div>
               <dt>Completed regrades</dt>
               <dd>
-                {run.survived}
+                {rounds.filter((round) => round.number > 0 && round.status === "published").length}
                 · Account independence unverified
               </dd>
             </div>
