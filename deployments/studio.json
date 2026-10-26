@@ -132,5 +132,19 @@
     "vault": "96de338fd5272151dc6868ed6583a7e033569c10e2b1942a69abe7c2c04aaee4",
     "office": "f92e5b451264a76ced83422b4334e285df5b26489fa8ec323e2ba66de54b1ed6"
   },
-  "signed": {}
+  "signed": {},
+  "verification": {
+    "source_bytes_match": true,
+    "sdk_schema_verified": true,
+    "wiring_finalized": true,
+    "protocol": 2,
+    "verified_at": "2026-10-26T12:20:06.691Z",
+    "production_bonding_enabled": false,
+    "sourceHashes": {
+      "registry": "e9740db2243b37f5978405ec62de6b3b4b477e6ca68709f365f210894785a2c6",
+      "vault": "96de338fd5272151dc6868ed6583a7e033569c10e2b1942a69abe7c2c04aaee4",
+      "office": "f92e5b451264a76ced83422b4334e285df5b26489fa8ec323e2ba66de54b1ed6"
+    },
+    "finalized_state_transport": "validator checked gen_call latest-final"
+  }
 }

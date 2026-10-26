@@ -3,10 +3,10 @@
   "scope": "mantissas-projects",
   "environment": "production",
   "alias": "https://assay-office.vercel.app",
-  "deployment_url": "https://assay-office-hjr8zrtxl-mantissas-projects.vercel.app",
-  "deployment_id": "dpl_i2N3w6tfZ1Fz13Tnu29LSKFQxRPv",
-  "source_commit": "3e02b9589bd862ebb6ec69f4fbffac030651d77b",
-  "verified_at": "2026-10-26T08:54:39.957386+00:00",
+  "deployment_url": "https://assay-office-j3xhjojvr-mantissas-projects.vercel.app",
+  "deployment_id": "dpl_Gjt5vXxYbQJ9cBrVTS4A8M1WD4Tc",
+  "source_commit": "1a8c3dfe0c93847bd08f53adb8c3b7af462a606c",
+  "verified_at": "2026-10-26T12:22:23.806429+00:00",
   "node_version": "22.x",
   "region": "iad1",
   "checks": {
@@ -24,7 +24,7 @@
     "privy_origin_accepted": true,
     "otp_session_verified": false,
     "application_tests_passed": 44,
-    "contract_tests_passed": 43,
+    "contract_tests_passed": 64,
     "production_build": true,
     "contract_source_bytes_verified": true,
     "contract_schema_verified": true,
@@ -32,7 +32,11 @@
     "production_financial_backing": false,
     "github_recovery_workflow": "success",
     "production_static_assets_scanned": 24,
-    "production_static_credential_matches": 0
+    "production_static_credential_matches": 0,
+    "production_environment_contract_addresses_verified": true,
+    "isolated_current_source_funded_lifecycle_verified": true,
+    "isolated_native_withdrawal_delivery_verified": true,
+    "isolated_withdrawal_reconciliation_verified": true
   },
   "worker": {
     "function_budget_seconds": 300,
@@ -77,7 +81,131 @@
         "vercel_recovery_schedule": "17 3 * * *",
         "github_workflow": ".github/workflows/worker.yml"
       }
+    },
+    {
+      "project": "assay-office",
+      "scope": "mantissas-projects",
+      "environment": "production",
+      "alias": "https://assay-office.vercel.app",
+      "deployment_url": "https://assay-office-hjr8zrtxl-mantissas-projects.vercel.app",
+      "deployment_id": "dpl_i2N3w6tfZ1Fz13Tnu29LSKFQxRPv",
+      "source_commit": "3e02b9589bd862ebb6ec69f4fbffac030651d77b",
+      "verified_at": "2026-10-26T08:54:39.957386+00:00",
+      "node_version": "22.x",
+      "region": "iad1",
+      "checks": {
+        "public_alias_http": 200,
+        "live_benchmark_count": 1,
+        "live_run_count": 0,
+        "authorized_worker_http": 200,
+        "unauthorized_worker_http": 401,
+        "unauthorized_submission_http": 401,
+        "unauthorized_evidence_upload_http": 401,
+        "desktop_and_mobile_overflow": false,
+        "browser_runtime_errors": 0,
+        "theme_toggle": true,
+        "email_only_login_dialog": true,
+        "privy_origin_accepted": true,
+        "otp_session_verified": false,
+        "application_tests_passed": 44,
+        "contract_tests_passed": 43,
+        "production_build": true,
+        "contract_source_bytes_verified": true,
+        "contract_schema_verified": true,
+        "finalized_protocol_configuration_verified": true,
+        "production_financial_backing": false,
+        "github_recovery_workflow": "success",
+        "production_static_assets_scanned": 24,
+        "production_static_credential_matches": 0
+      },
+      "worker": {
+        "function_budget_seconds": 300,
+        "processing_window_seconds": 210,
+        "github_schedule": "*/5 * * * *",
+        "vercel_recovery_schedule": "17 3 * * *",
+        "github_workflow": ".github/workflows/worker.yml",
+        "verified_recovery_run": "https://github.com/dotmantissa/assay/actions/runs/40290268912"
+      },
+      "protocol": 2
+    },
+    {
+      "project": "assay-office",
+      "scope": "mantissas-projects",
+      "environment": "production",
+      "alias": "https://assay-office.vercel.app",
+      "deployment_url": "https://assay-office-4pzj3j7u4-mantissas-projects.vercel.app",
+      "deployment_id": "dpl_4Hsp9NwynbZRL7DSJUx3kzvynqTj",
+      "source_commit": "b82c55124fad1670355adc10383fec7ac5554faf",
+      "verified_at": "2026-10-26T09:14:30.988133+00:00",
+      "node_version": "22.x",
+      "region": "iad1",
+      "checks": {
+        "public_alias_http": 200,
+        "live_benchmark_count": 1,
+        "live_run_count": 0,
+        "authorized_worker_http": 200,
+        "unauthorized_worker_http": 401,
+        "unauthorized_submission_http": 401,
+        "unauthorized_evidence_upload_http": 401,
+        "desktop_and_mobile_overflow": false,
+        "browser_runtime_errors": 0,
+        "theme_toggle": true,
+        "email_only_login_dialog": true,
+        "privy_origin_accepted": true,
+        "otp_session_verified": false,
+        "application_tests_passed": 44,
+        "contract_tests_passed": 43,
+        "production_build": true,
+        "contract_source_bytes_verified": true,
+        "contract_schema_verified": true,
+        "finalized_protocol_configuration_verified": true,
+        "production_financial_backing": false,
+        "github_recovery_workflow": "success",
+        "production_static_assets_scanned": 24,
+        "production_static_credential_matches": 0
+      },
+      "worker": {
+        "function_budget_seconds": 300,
+        "processing_window_seconds": 210,
+        "github_schedule": "*/5 * * * *",
+        "vercel_recovery_schedule": "17 3 * * *",
+        "github_workflow": ".github/workflows/worker.yml",
+        "verified_recovery_run": "https://github.com/dotmantissa/assay/actions/runs/40290268912"
+      },
+      "protocol": 2
+    },
+    {
+      "project": "assay-office",
+      "scope": "mantissas-projects",
+      "environment": "production",
+      "alias": "https://assay-office.vercel.app",
+      "deployment_url": "https://assay-office-6okrkdbdx-mantissas-projects.vercel.app",
+      "deployment_id": "dpl_CEFWk5vYKxS92c9Ufh8Py76Bqpst",
+      "source_commit": "0e5edf29900360175e0de804aeda398e5b1ed084",
+      "checks": {
+        "deployment_ready": true,
+        "production_alias_confirmed_before_replacement": true
+      },
+      "note": "Recovered from hosting API during final crash recovery; previous receipt omitted this terminal-state UI release."
     }
   ],
-  "protocol": 2
+  "protocol": 2,
+  "contracts": {
+    "registry": "0x9be36dDaC8A2306225215e0dc70A9eD4A03a1b2b",
+    "vault": "0xa5bDed90eEd3179CDF525dab9654720e972518fb",
+    "office": "0xcb4caA6ad5852EFFd44a5a8746dC256e490DA397"
+  },
+  "contract_source_hashes": {
+    "registry": "e9740db2243b37f5978405ec62de6b3b4b477e6ca68709f365f210894785a2c6",
+    "vault": "96de338fd5272151dc6868ed6583a7e033569c10e2b1942a69abe7c2c04aaee4",
+    "office": "f92e5b451264a76ced83422b4334e285df5b26489fa8ec323e2ba66de54b1ed6"
+  },
+  "lifecycle_evidence": {
+    "path": "tests/integration/lifecycle-receipts.json",
+    "source_commit": "8cc370ff0eef8ec950e6fbe4b46a4861cad38f5a",
+    "verified_at": "2026-10-26T12:11:53.778Z",
+    "finalized_parent_transactions": 25,
+    "native_transfer_child": "0x01e6706fb2df9d1ec20b6317a0356127bf16571c6c331aa853027c64d8c5c2d8",
+    "native_value_delivered": "90"
+  }
 }
