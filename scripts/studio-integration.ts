@@ -32,8 +32,8 @@ const c = client(true, async (raw, hash) => {
 async function rpc<T>(call: () => Promise<T>): Promise<T> {
   for (;;) {
     try { return await call(); } catch (error) {
-      if (!(error instanceof Error) || !/rate limit/i.test(error.message)) throw error;
-      console.log("Studio rate limit; saved progress retained, retrying after 60 seconds");
+      if (!(error instanceof Error) || (!/rate limit/i.test(error.message) && error.name !== "TransactionReceiptNotFoundError")) throw error;
+      console.log("Studio transaction or rate window pending; saved progress retained, retrying after 60 seconds");
       await new Promise(resolve => setTimeout(resolve, 60000));
     }
   }
@@ -204,5 +204,17 @@ if (state.checks.nativeWithdrawal !== "SUCCESS") throw new Error("Native withdra
 state.original = original; state.challenge = challenged;
 state.checks.fullCoverage = "SUCCESS"; state.checks.fundedEscrow = "SUCCESS"; state.checks.settlement = "SUCCESS";
 state.checks.cancellation = "SUCCESS"; state.checks.sourceRevision = revision;
+state.sourceHashes = {};
+for (const [name, address] of Object.entries(state.addresses)) {
+  const encoded = await rpc(() => c.request({method: "gen_getContractCode", params: [address]} as never)) as string;
+  const decoded = Buffer.from(encoded, "base64").toString("utf8");
+  const expected = hash(`contracts/${{registry:"benchmark_registry",vault:"bond_vault",office:"assay_office"}[name]}.py`);
+  const candidates = [Buffer.from(decoded), Buffer.from(decoded.replace(/^0x/, ""), "hex"), Buffer.from(decoded, "base64")];
+  if (!candidates.some(bytes => createHash("sha256").update(bytes).digest("hex") === expected))
+    throw new Error("Isolated deployed source differs: " + name);
+  state.sourceHashes[name] = expected;
+}
+state.checks.deployedSourceBytes = "SUCCESS";
+state.verified_at = new Date().toISOString();
 save();
 console.log("Funded pinned runtime deposits, full coverage validator grading, bound challenge rejection, settlement acknowledgement/replay, refunds, cancellation, withdrawals and signed broadcast recovery verified. Integration runs remain isolated.");
