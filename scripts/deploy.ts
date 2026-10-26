@@ -6,6 +6,8 @@ import {
   existsSync,
 } from "node:fs";
 import { client, executionSucceeded } from "../lib/chain";
+import { createHash } from "node:crypto";
+import { TransactionHashVariant } from "genlayer-js/types";
 import type { CalldataEncodable } from "genlayer-js/types";
 const path = "deployments/studio.json";
 mkdirSync("deployments", { recursive: true });
@@ -21,13 +23,27 @@ function save() {
   writeFileSync(`${path}.tmp`, JSON.stringify(state, null, 2) + "\n");
   renameSync(`${path}.tmp`, path);
 }
+const sourceHashes = Object.fromEntries(Object.entries({registry:"benchmark_registry", vault:"bond_vault", office:"assay_office"}).map(([name,file]) => [name,createHash("sha256").update(readFileSync(`contracts/${file}.py`)).digest("hex")]));
+if (state.protocol !== 2) {
+  const previous = {...state};
+  delete previous.history;
+  state.history = [...(state.history || []), previous];
+  state.addresses = {};
+  state.transactions = {};
+  state.wiringVerified = false;
+  state.protocol = 2;
+  state.sourceHashes = sourceHashes;
+  save();
+}
+if (JSON.stringify(state.sourceHashes) !== JSON.stringify(sourceHashes))
+  throw new Error("Source changed during deployment; finish verification before replacing a saved deployment");
 const c = client(true);
 async function wait(hash: string) {
   for (let i = 0; i < 150; i++) {
     const tx = await c.getTransaction({
       hash: hash as import("genlayer-js/types").TransactionHash,
     });
-    if (["ACCEPTED", "FINALIZED"].includes(String(tx.statusName))) {
+    if (String(tx.statusName) === "FINALIZED") {
       if (!executionSucceeded(tx)) {
         console.error(
           "Execution error:",
@@ -90,6 +106,7 @@ if (!state.wiringVerified) {
     address: state.addresses.vault,
     functionName: "configuration",
     args: [],
+    transactionHashVariant: TransactionHashVariant.LATEST_FINAL,
   })) as Record<string, unknown>;
   if (
     String(config.office).toLowerCase() !== state.addresses.office.toLowerCase()
