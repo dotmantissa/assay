@@ -40,8 +40,8 @@ export default async function Benchmarks() {
                   <dd>{b.item_count} questions</dd>
                 </div>
                 <div>
-                  <dt>Each sample</dt>
-                  <dd>{b.sample_size} answers</dd>
+                  <dt>Full coverage</dt>
+                  <dd>{b.item_count} answers per round</dd>
                 </div>
                 <div>
                   <dt>Error overlap</dt>

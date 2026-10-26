@@ -89,7 +89,7 @@ function EmailProgress({ id }: { id: string }) {
       </h2>
       <p>
         {job
-          ? `Status: ${job.state}. ${job.transactions.length} confirmed transactions.`
+          ? `Status: ${job.state}. ${job.transactions.length} finalized transactions.`
           : "Checking your saved progress."}
       </p>
       {error && (
@@ -116,7 +116,7 @@ function EmailProgress({ id }: { id: string }) {
       )}
       {Boolean(job?.transactions.length) && (
         <details>
-          <summary>Confirmed transaction receipts</summary>
+          <summary>Finalized transaction receipts</summary>
           <ol>
             {job?.transactions.map((hash) => (
               <li key={hash}>

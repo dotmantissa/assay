@@ -79,7 +79,6 @@ function AuthenticatedForm({
               dataset_url: url,
               content_hash: hash,
               rubric: form.get("rubric"),
-              sample_size: Number(form.get("sample_size")),
               scale: Number(form.get("scale")),
               tolerance_bps: Math.round(Number(form.get("tolerance")) * 100),
               overlap_bps: Math.round(Number(form.get("overlap")) * 100),
@@ -130,7 +129,7 @@ function AuthenticatedForm({
       {kind === "submit" ? (
         <>
           <label>
-            Model or agent name
+            Submitter’s model label (unverified)
             <input
               name="model"
               required
@@ -149,6 +148,7 @@ function AuthenticatedForm({
               ))}
             </select>
           </label>
+          <p className="field-help">Assay certifies these submitted answers. It does not verify that the named model generated them, its settings, or absence of manual edits.</p>
           {!benchmarks.length && (
             <div className="notice">
               <Info size={18} />
@@ -182,17 +182,6 @@ function AuthenticatedForm({
             />
           </label>
           <div className="form-grid">
-            <label>
-              Answers per sample
-              <input
-                name="sample_size"
-                type="number"
-                min={1}
-                max={100}
-                defaultValue={20}
-                required
-              />
-            </label>
             <label>
               Maximum points per answer
               <input
@@ -290,8 +279,8 @@ function AuthenticatedForm({
         )}
         <p className="field-help">
           {kind === "publish"
-            ? "A JSON object with an items array. Each item needs a unique id and a question. Add reference answers or up to three live HTTPS sources when useful."
-            : "A JSON object with an outputs map. Each dataset item id maps to the model’s full answer as a string."}
+            ? "A JSON object with an items array. Each item needs a unique id and a question. Add reference answers or up to three source snapshots with url, text, sha256 and as_of. Every item is graded; maximum 100 items."
+            : "A JSON object with an outputs map. Each dataset item id maps to the submitted full answer as a string."}
         </p>
         <p className="field-help">
           Published evidence is public and cannot be edited. Leave private data

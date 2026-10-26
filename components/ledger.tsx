@@ -18,21 +18,19 @@ export function Ledger({
 }) {
   const [query, setQuery] = useState(""),
     [benchmark, setBenchmark] = useState(""),
-    [sort, setSort] = useState("score");
+    [sort, setSort] = useState("name");
   const visible = useMemo(
     () =>
       runs
         .filter(
           (r) =>
-            r.status === "published" &&
+            ["published", "completed", "slashed"].includes(r.status) && r.finality === "finalized" &&
             (!benchmark || r.benchmark_id === benchmark) &&
             r.model.toLowerCase().includes(query.toLowerCase()),
         )
-        .sort((a, b) =>
-          sort === "challenges"
-            ? b.survived - a.survived
-            : (b.score_bps || 0) - (a.score_bps || 0),
-        ),
+        .sort((a, b) => benchmark && sort === "score"
+          ? (b.score_bps || 0) - (a.score_bps || 0)
+          : a.benchmark_id.localeCompare(b.benchmark_id) || a.model.localeCompare(b.model)),
     [runs, query, benchmark, sort],
   );
   return (
@@ -41,17 +39,17 @@ export function Ledger({
         <h2>The public ledger</h2>
         <span>
           {visible.length}{" "}
-          {visible.length === 1 ? "verified run" : "verified runs"}
+          {visible.length === 1 ? "finalized artifact" : "finalized artifacts"}
         </span>
       </div>
       <div className="ledger-toolbar">
         <label className="search-field">
           <Search size={18} />
           <input
-            aria-label="Search models"
+            aria-label="Search submitter labels"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Find a model"
+            placeholder="Find a submitter label"
           />
         </label>
         <label className="select-field">
@@ -61,7 +59,7 @@ export function Ledger({
             value={benchmark}
             onChange={(e) => setBenchmark(e.target.value)}
           >
-            <option value="">Every benchmark</option>
+            <option value="">Browse benchmarks (unranked)</option>
             {benchmarks.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
@@ -71,11 +69,12 @@ export function Ledger({
         </label>
         <select
           aria-label="Sort runs"
+          disabled={!benchmark}
           value={sort}
           onChange={(e) => setSort(e.target.value)}
         >
-          <option value="score">Highest score</option>
-          <option value="challenges">Most tested</option>
+          <option value="name">Alphabetical</option>
+          <option value="score">Score within this benchmark</option>
         </select>
       </div>
       {visible.length ? (
@@ -83,11 +82,11 @@ export function Ledger({
           <table>
             <thead>
               <tr>
-                <th>Model</th>
+                <th>Unverified model label</th>
                 <th>Benchmark</th>
                 <th>Score</th>
-                <th>95% interval</th>
-                <th>Challenges survived</th>
+                <th>Coverage · status</th>
+                <th>Completed regrades</th>
               </tr>
             </thead>
             <tbody>
@@ -105,8 +104,7 @@ export function Ledger({
                     <small>%</small>
                   </td>
                   <td>
-                    {((r.low_bps || 0) / 100).toFixed(1)}% to{" "}
-                    {((r.high_bps || 0) / 100).toFixed(1)}%
+                    {r.n} items · {r.status}
                   </td>
                   <td>
                     <ShieldCheck size={15} />
@@ -131,7 +129,7 @@ export function Ledger({
           <p>
             {query || benchmark
               ? "Try another model or benchmark."
-              : "No verified runs have been published here yet. Bring a real set of answers. We’ll put them to the test."}
+              : "No finalized artifacts have been published here yet. Bring a real set of answers. We’ll put them to the test."}
           </p>
           <Link className="button primary" href="/submit">
             <Plus size={17} /> Submit a run
@@ -139,8 +137,7 @@ export function Ledger({
         </div>
       )}
       <div className="ledger-footnote">
-        A score only enters this ledger after its sampled answers pass validator
-        consensus.
+        Finalized artifact grades only. Scores describe the complete committed dataset. Select one benchmark to compare scores; publishers choose their own difficulty and rubric. Model provenance and independence of challenger accounts are unverified.
       </div>
     </section>
   );

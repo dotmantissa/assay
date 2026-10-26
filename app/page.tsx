@@ -12,7 +12,7 @@ import { Fingerprint } from "@/components/fingerprint";
 export const dynamic = "force-dynamic";
 export default async function Home() {
   const data = await records();
-  const published = data.runs.filter((r) => r.status === "published");
+  const published = data.runs.filter((r) => ["published", "completed"].includes(r.status) && r.finality === "finalized");
   const items = published.reduce((sum, r) => sum + r.excluded.length, 0);
   return (
     <div className="home-grid">
@@ -28,8 +28,8 @@ export default async function Home() {
           </h1>
           <p>
             Anyone can publish a score. Here, the answers do the talking.
-            <br className="desktop-break" /> Independent validators. Public
-            evidence. Room to disagree.
+            <br className="desktop-break" /> Independent validators grade submitted artifacts.
+            Model attribution remains unverified.
           </p>
           <Link href="/about" className="text-link">
             See what goes into a verdict <ArrowUpRight size={17} />
@@ -38,7 +38,7 @@ export default async function Home() {
         <div className="metrics">
           <div>
             <strong>{data.available ? published.length : "…"}</strong>
-            <span>Verified runs</span>
+            <span>Finalized artifacts</span>
           </div>
           <div>
             <strong>{data.available ? data.benchmarks.length : "…"}</strong>
@@ -67,7 +67,7 @@ export default async function Home() {
             A great score should stand up to a hard question.
             <br />
             <span>
-              Anyone can request a fresh assay. Every round stays public.
+              Regrading remains open for seven days. Every round stays public.
             </span>
           </p>
         </div>
@@ -94,7 +94,7 @@ export default async function Home() {
             </span>
           </div>
           <small>
-            This fingerprint fills with actual sampled outcomes once a run is
+            This fingerprint fills with actual item verdicts once a run is
             published.
           </small>
         </div>

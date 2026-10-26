@@ -2,7 +2,7 @@
 
 Good models deserve honest numbers.
 
-Assay is an independent office for AI benchmark claims. A publisher locks a dataset and a public rubric. A submitter commits complete model outputs. GenLayer validators grade a reproducible sample, agree about the mistakes as well as the total, and publish a score with a confidence interval. Anyone else can ask for a fresh assay.
+Assay is an independent office for AI benchmark claims. A publisher locks a dataset and a public rubric. A submitter commits complete answers with an unverified model label. GenLayer validators grade every dataset item and publish a descriptive artifact score. Regrading uses the same committed evidence during a seven day challenge window. The result does not attest model provenance or population performance.
 
 The interface reads actual contract records through a PostgreSQL index. There are no demo scores or invented leaderboard entries. A new installation starts empty.
 
@@ -15,7 +15,7 @@ Three Python contracts own the evidence and verdicts:
 | Contract | Responsibility |
 | --- | --- |
 | Benchmark registry | Immutable dataset hash, rubric, sampling and comparison rules |
-| Assay office | Output commitment, receipt verified sampling, item consensus, publication and fresh challenge rounds |
+| Assay office | Output commitment, finalized receipt binding, full coverage item consensus, publication and acknowledged challenge settlement |
 | Bond vault | Native deposits, locks, authorized settlement and withdrawals |
 
 The initial Reasoning under scrutiny benchmark contains 40 authored questions about probability, evidence, measurement and honest evaluation. It is a small public test, not a claim of comprehensive model capability. Its questions and reference answers live in `benchmarks/reasoning.json`.
@@ -77,13 +77,13 @@ Create an API key after email sign in. The full key appears once. The database r
 
 Send an `Idempotency-Key` header when a request might be repeated. A successful request returns HTTP 202 with a job ID and the future record ID. Poll `GET /api/jobs/{id}` using the same bearer credential. A complete job links to `/runs/{result_id}`. A failed job can be retried with `POST /api/jobs/{id}`.
 
-`POST /api/benchmarks` publishes a dataset definition. `POST /api/runs/{id}/challenge` requests a fresh round. `POST /api/evidence` accepts a `kind` of `dataset` or `outputs` and a `document` object. API key administration requires an email session rather than another API key.
+`POST /api/benchmarks` publishes a dataset of 1–100 items. Coverage is always complete; an optional sample_size must equal item count. `POST /api/runs/{id}/challenge` requests a fresh round. `POST /api/evidence` accepts a `kind` of `dataset` or `outputs` and a `document` object. API key administration requires an email session rather than another API key.
 
 ## CI and badges
 
 The composite action in `.github/actions/assay` submits a real output document, waits for consensus and returns its public record URL. Use it from another repository as `dotmantissa/assay/.github/actions/assay@main`, with the inputs listed in its `action.yml`. Store the API key in GitHub Actions secrets.
 
-The badge endpoint is `/api/badges/{run_id}`. Link the badge to `/runs/{run_id}` on a model card. Badges read actual published scores and change their label when a challenge succeeds.
+The badge endpoint is `/api/badges/{run_id}`. It identifies the benchmark, coverage, finalized state and unverified attribution. Pending challenges suspend its percentage. Compare scores only within the same benchmark.
 
 ## Verify changes
 
@@ -100,8 +100,8 @@ npm run contracts:verify
 npm run test:integration
 ```
 
-Direct tests cover every contract, malformed evidence, authorization, settlement, sampling, confidence intervals and the error set comparator. Live Studio integration tests use separate assay and vault instances. Their fixtures never become application leaderboard records.
+Direct tests cover every contract, malformed evidence, authorization, bound escrow, acknowledgements/replay, release/cancellation/timeouts, full coverage, conservative regrades and validator comparisons. Live Studio integration tests use separate assay and vault instances. Their fixtures never become application leaderboard records.
 
 The email relay is custodial: it is trusted to act for sponsored identities. Direct contract users authorize themselves by sender address. The public account identifier is a keyed hash of the Privy identity, so the application does not write email addresses to contracts.
 
-The deployed Studio contracts have passed a live grading round, a fresh sample challenge and finalized vault settlement. The integration receipts are recorded in `tests/integration/studio-receipts.json`. The suite also verifies recovery of a signed transaction interrupted before broadcast.
+The integration receipts in `tests/integration/studio-receipts.json` record actual operations and preserve earlier deployment history. Run the current suite with `ASSAY_EVIDENCE_REVISION` set to the pushed 40-character fixture commit. It uses isolated contracts and a funded vault to check payable deposits, full coverage consensus, settlement/replay, refunds and signed broadcast recovery. Production Studio financial backing remains disabled.

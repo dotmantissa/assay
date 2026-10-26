@@ -6,6 +6,7 @@ import type { Run, Round, Benchmark } from "@/lib/types";
 import { Fingerprint } from "@/components/fingerprint";
 import { ChallengeButton } from "@/components/challenge";
 import { percent } from "@/lib/records";
+const challengeOpen = (run: Run) => Date.now() / 1000 < run.challenge_until;
 export const dynamic = "force-dynamic";
 export default async function RunPage({
   params,
@@ -32,10 +33,11 @@ export default async function RunPage({
       <div className="page-heading run-header">
         <div>
           <h1>{run.model}</h1>
+          <p>Submitter supplied label · model attribution unverified</p>
           <p>
             {benchmark.name} ·{" "}
-            {run.status === "published"
-              ? "Published verdict"
+            {["published", "completed"].includes(run.status)
+              ? "Finalized artifact verdict"
               : run.status === "slashed"
                 ? "Score challenged successfully"
                 : "Assay in progress"}
@@ -43,6 +45,7 @@ export default async function RunPage({
         </div>
         {run.score_bps !== null && (
           <div className="run-score">
+            {!["published", "completed", "slashed"].includes(run.status) && <small>Previous result · under review</small>}
             {percent(run.score_bps)}
             <small>%</small>
           </div>
@@ -52,18 +55,16 @@ export default async function RunPage({
         <div>
           <dl className="facts">
             <div>
-              <dt>95% confidence interval</dt>
+              <dt>Evidence scope · finality</dt>
               <dd>
-                {run.low_bps !== undefined
-                  ? `${percent(run.low_bps)}% to ${percent(run.high_bps!)}%`
-                  : "Awaiting verdict"}
+                Complete committed dataset · finalized chain state. This is an artifact grade, with no claim of population confidence or model provenance.
               </dd>
             </div>
             <div>
-              <dt>Challenges survived</dt>
+              <dt>Completed regrades</dt>
               <dd>
                 {run.survived}
-                {run.survived >= 3 ? " · Tested three times or more" : ""}
+                · Account independence unverified
               </dd>
             </div>
             <div>
@@ -92,13 +93,13 @@ export default async function RunPage({
               </p>
               {round.challenge_successful !== undefined && (
                 <p>
-                  {round.challenge_successful
+                  {round.settlement !== "confirmed" ? "Settlement is pending; the proposed result is not effective." : round.challenge_successful
                     ? "The challenge found a materially lower score."
-                    : "The score survived this challenge."}
+                    : "No material drop exceeded the tolerance. This does not establish independent scrutiny."}
                 </p>
               )}
               <details>
-                <summary>Read every sampled verdict</summary>
+                <summary>Read every item verdict</summary>
                 <ul className="grade-list">
                   {round.grades.map((g) => (
                     <li key={g.id}>
@@ -109,11 +110,11 @@ export default async function RunPage({
                       <p>{g.reason}</p>
                       {g.sources?.map((source) => (
                         <details key={source.url}>
-                          <summary>Live source snapshot</summary>
+                          <summary>Committed source snapshot</summary>
                           <a href={source.url} target="_blank" rel="noreferrer">
                             {source.url}
                           </a>
-                          <code>{source.text}</code>
+                          <p>Publisher declared as of: {source.as_of}</p><code>{source.sha256}</code><code>{source.text}</code>
                         </details>
                       ))}
                     </li>
@@ -121,7 +122,7 @@ export default async function RunPage({
                 </ul>
               </details>
               <details>
-                <summary>Inspect the sample and commitment</summary>
+                <summary>Inspect dataset coverage and commitment</summary>
                 <p className="field-help">
                   Dataset positions: {round.sample.join(", ")}
                 </p>
@@ -138,7 +139,7 @@ export default async function RunPage({
           ))}
           {!rounds.length && (
             <div className="notice">
-              Outputs are committed. Sampling has not started yet.
+              Outputs are committed. Grading has not started yet.
             </div>
           )}
         </div>
@@ -146,17 +147,15 @@ export default async function RunPage({
           <ShieldCheck size={29} />
           <h2>A claim you can examine.</h2>
           <p>
-            Every round is public. Each challenge uses a fresh sample, with no
-            reused questions.
+            Every round regrades the entire committed dataset against the same source snapshots. The headline retains the lowest verified score for each item across completed rounds.
           </p>
           {run.status === "published" &&
-          benchmark.item_count - run.excluded.length >=
-            benchmark.sample_size ? (
+          challengeOpen(run) ? (
             <ChallengeButton id={run.id} />
           ) : (
             <p>
               {run.status === "published"
-                ? "No unused sample remains."
+                ? "The seven day challenge window has closed."
                 : "Challenges open after a verdict is published."}
             </p>
           )}
@@ -174,16 +173,16 @@ export default async function RunPage({
             <code>{run.outputs_hash}</code>
           </details>
           <h2>Carry the proof with you.</h2>
-          {run.status === "published" || run.status === "slashed" ? (
+          {["published", "completed", "slashed"].includes(run.status) ? (
             <>
               <a href={`/api/badges/${id}`} className="badge-preview">
-                <span>Assayed</span>
+                <span>Artifact grade · {benchmark.name} · {run.n} items</span>
                 {percent(run.score_bps!)}%
               </a>
               <p>
-                Add this badge to your model card and link it to this record.
+                This badge identifies the benchmark and coverage. It certifies submitted answers; the named model and execution settings are unverified.
               </p>
-              <code>{`[![Assayed](${process.env.APP_URL || ""}/api/badges/${id})](${process.env.APP_URL || ""}/runs/${id})`}</code>
+              <code>{`[![Artifact grade](${process.env.APP_URL || ""}/api/badges/${id})](${process.env.APP_URL || ""}/runs/${id})`}</code>
             </>
           ) : (
             <p>Your badge appears after the assay is published.</p>
@@ -191,6 +190,7 @@ export default async function RunPage({
           <Link className="text-link" href="/about">
             How this verdict was reached
           </Link>
+          <p className="field-help">Run status: {run.status}. Challenge window closes {run.challenge_until ? new Date(run.challenge_until*1000).toISOString() : "after publication"}. Unfinished rounds expire after one day and become inconclusive.</p>
         </aside>
       </div>
     </div>

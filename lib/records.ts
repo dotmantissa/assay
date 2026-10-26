@@ -6,9 +6,9 @@ export async function records() {
       await db()`SELECT kind,record,updated_at FROM public_records ORDER BY updated_at DESC`;
     return {
       benchmarks: rows
-        .filter((r) => r.kind === "benchmark")
+        .filter((r) => r.kind === "benchmark" && r.record.protocol === 2 && r.record.finality === "finalized")
         .map((r) => r.record as Benchmark),
-      runs: rows.filter((r) => r.kind === "run").map((r) => r.record as Run),
+      runs: rows.filter((r) => r.kind === "run" && r.record.protocol === 2 && r.record.finality === "finalized").map((r) => r.record as Run),
       available: true,
     };
   } catch {
