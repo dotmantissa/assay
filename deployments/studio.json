@@ -2,15 +2,15 @@
   "network": "studionet",
   "rpc": "https://studio.genlayer.com/api",
   "addresses": {
-    "registry": "0xAE6a4eEB8FC05b97E6cc9cAf065F327B05cAa106",
-    "vault": "0xD742639B3775f13C7e8c54d68958edf30AC94eC0",
-    "office": "0x791b48935c2Cc957C55BFad9153647d6A797ce16"
+    "registry": "0x9be36dDaC8A2306225215e0dc70A9eD4A03a1b2b",
+    "vault": "0x441C368f5232B52A67FBE5C3694E1cf20C3D71C8",
+    "office": "0xB773f52C277Fd57c43cee330e6d827059d07C2C5"
   },
   "transactions": {
-    "registry": "0xf260327683e366785b946366ccfac7b2cc74a43cf932361e4e5a61254b005544",
-    "vault": "0x60f79942435228e162f068defd14f51294f56a2c3691da564926ec7823bad7c6",
-    "office": "0x78cfcdfde6aa92e6ad1ba8c8068327ca2e26026c99d3b0fcb83b099076282e90",
-    "configure": "0x674bbe14d120df3691ce11381beaed88e7e5147bffdd50e6045802a11fd3276b"
+    "registry": "0x83335f82671190837a4a4c009b35e897586d16a8f9894aec8364acbeae09b686",
+    "vault": "0xa792b35e5d4a281f847dc60040315aa0b67c4b48d15dc96e8850f2aa52ac104e",
+    "office": "0x9098ce73812e05222e166c9b4f06b381f7c4b8bb8e5e3b1a0532ecd553d15e38",
+    "configure": "0xe0aa26a34362f0fcb7c8e1282becd0184e8f9f6c329b512470b17088d0d54d02"
   },
   "history": [
     {
@@ -38,7 +38,75 @@
         "office": "0x591f89fbe46440be2f02d70223aaaf3e01c28f65dd4c0c1c6da40c1f00118973",
         "configure": "0x2fd90178b4550243e34738aa7c63e857d6ceb46f8830d5beefa1a1b9e49190df"
       }
+    },
+    {
+      "network": "studionet",
+      "rpc": "https://studio.genlayer.com/api",
+      "addresses": {
+        "registry": "0xAE6a4eEB8FC05b97E6cc9cAf065F327B05cAa106",
+        "vault": "0xD742639B3775f13C7e8c54d68958edf30AC94eC0",
+        "office": "0x791b48935c2Cc957C55BFad9153647d6A797ce16"
+      },
+      "transactions": {
+        "registry": "0xf260327683e366785b946366ccfac7b2cc74a43cf932361e4e5a61254b005544",
+        "vault": "0x60f79942435228e162f068defd14f51294f56a2c3691da564926ec7823bad7c6",
+        "office": "0x78cfcdfde6aa92e6ad1ba8c8068327ca2e26026c99d3b0fcb83b099076282e90",
+        "configure": "0x674bbe14d120df3691ce11381beaed88e7e5147bffdd50e6045802a11fd3276b"
+      },
+      "wiringVerified": true
+    },
+    {
+      "network": "studionet",
+      "rpc": "https://studio.genlayer.com/api",
+      "addresses": {
+        "registry": "0x9be36dDaC8A2306225215e0dc70A9eD4A03a1b2b",
+        "vault": "0x5e8c79CAA0c2Bfe29677800eDAb401B105bCA9FC",
+        "office": "0xfA60084984F9Dd18B8D98e650fE05134F56F92aE"
+      },
+      "transactions": {
+        "registry": "0x83335f82671190837a4a4c009b35e897586d16a8f9894aec8364acbeae09b686",
+        "vault": "0x8a18f67d9ad58cf7375f76a59289a9c8ede015397f4e8063859ce474ef2159de",
+        "office": "0xf42f53623dc2daf1e625ef3cfc858be445b711f27cc5c08c79c94ad5da957a66",
+        "configure": "0xc487d42528aca1ab39de9af0122d98f0fe2ea53f14d22856daa8869ad7038d23"
+      },
+      "wiringVerified": true,
+      "protocol": 2,
+      "sourceHashes": {
+        "registry": "e9740db2243b37f5978405ec62de6b3b4b477e6ca68709f365f210894785a2c6",
+        "vault": "567b79fe83f67ea4451054ce558efba04a33f3513c8b90be56e528443d2dc0b1",
+        "office": "6416f6f76ba02de11a3808cc23d8ab50e743b441856a7d14c67d91dd23253927"
+      },
+      "verification": {
+        "source_bytes_match": true,
+        "sdk_schema_verified": true,
+        "wiring_finalized": true,
+        "protocol": 2,
+        "verified_at": "2026-10-26T03:02:18.129281+00:00",
+        "production_bonding_enabled": false
+      },
+      "superseded_reason": "Studio host cannot execute native LATEST_FINAL cross-contract reads; replaced by validator checked finalized RPC snapshots"
     }
   ],
-  "wiringVerified": true
+  "wiringVerified": true,
+  "protocol": 2,
+  "sourceHashes": {
+    "registry": "e9740db2243b37f5978405ec62de6b3b4b477e6ca68709f365f210894785a2c6",
+    "vault": "020b4fb4db4858f0184cde15fa9d9a24ee35a91161a6dfb5136c93a8600a3a11",
+    "office": "c8f744d588044cfdc05cf81249cb8d9028ccdcc85508c3a97222c73215fb4859"
+  },
+  "signed": {},
+  "verification": {
+    "source_bytes_match": true,
+    "sdk_schema_verified": true,
+    "wiring_finalized": true,
+    "protocol": 2,
+    "verified_at": "2026-10-26T08:49:44.871Z",
+    "production_bonding_enabled": false,
+    "sourceHashes": {
+      "registry": "e9740db2243b37f5978405ec62de6b3b4b477e6ca68709f365f210894785a2c6",
+      "vault": "020b4fb4db4858f0184cde15fa9d9a24ee35a91161a6dfb5136c93a8600a3a11",
+      "office": "c8f744d588044cfdc05cf81249cb8d9028ccdcc85508c3a97222c73215fb4859"
+    },
+    "finalized_state_transport": "validator checked gen_call latest-final"
+  }
 }
