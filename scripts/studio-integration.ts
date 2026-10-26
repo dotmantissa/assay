@@ -42,8 +42,26 @@ function save() {
   writeFileSync(statePath + ".tmp", JSON.stringify(state, null, 2) + "\n");
   renameSync(statePath + ".tmp", statePath);
 }
+const rejectionMessages: Record<string, string> = {
+  zeroDeposit: "[EXPECTED] Positive deposit required",
+  crossRunReuse: "[EXPECTED] Unused associated bond required",
+  wrongRole: "[EXPECTED] Run is unavailable for challenge",
+};
+function rejectionReason(tx: Awaited<ReturnType<typeof c.getTransaction>>) {
+  return (tx.consensus_data?.leader_receipt?.[0]?.result as unknown as {payload?: string})?.payload;
+}
 async function transaction(key: string, send: () => Promise<string>, expectedFailure = false) {
-  if (state.receipts[key]) return state.receipts[key];
+  const expectedReason = expectedFailure ? rejectionMessages[key] : undefined;
+  if (expectedFailure && !expectedReason) throw new Error("Declare the expected contract rejection: " + key);
+  if (state.receipts[key]) {
+    if (expectedReason && state.receipts[key].error !== expectedReason) {
+      const tx = await rpc(() => c.getTransaction({hash:state.transactions[key] as TransactionHash}));
+      if (rejectionReason(tx) !== expectedReason) throw new Error("Unexpected rejection reason: " + key);
+      state.receipts[key].error = expectedReason;
+      save();
+    }
+    return state.receipts[key];
+  }
   activeKey = key;
   if (!state.transactions[key]) {
     state.transactions[key] = await rpc(() => state.signed[key]
@@ -59,11 +77,13 @@ async function transaction(key: string, send: () => Promise<string>, expectedFai
     if (String(tx.statusName) === "FINALIZED") {
       if (executionSucceeded(tx) === expectedFailure)
         throw new Error(key + (expectedFailure ? " unexpectedly succeeded" : " execution failed"));
+      if (expectedReason && rejectionReason(tx) !== expectedReason)
+        throw new Error("Unexpected rejection reason: " + key);
       state.checks[key] = expectedFailure ? "REJECTED_AS_EXPECTED" : "SUCCESS";
       state.receipts[key] = {hash: state.transactions[key], status: "FINALIZED", execution: expectedFailure ? "ERROR" : "SUCCESS",
         to_address: tx.to_address || tx.recipient, validator_count: tx.consensus_data?.validators?.length || tx.lastRound?.roundValidators?.length || 0,
         votes: tx.consensus_data?.votes || tx.lastRound?.validatorVotesName || {},
-        error: expectedFailure ? tx.consensus_data?.leader_receipt?.[0]?.error : undefined};
+        error: expectedFailure ? rejectionReason(tx) : undefined};
       delete state.signed[key];
       save();
       return tx;
