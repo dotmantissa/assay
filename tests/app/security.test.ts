@@ -119,3 +119,13 @@ it("requires explicit execution success even when the consensus result says succ
     }),
   ).toBe(false);
 });
+
+
+it("requires hashed timestamped source snapshots and rejects mutable URL references", () => {
+  const source = {url:"https://example.org/facts",text:"fact",sha256:"1e7dc6d6c16565406a3cabdcedc7bf52746b3ca6cfbf0b37cbbad7f9ec4d71a1",as_of:"2026-10-25T00:00:00Z"};
+  const item = {id:"q",question:"What fact?",sources:[source]};
+  expect(datasetSchema.safeParse({items:[item]}).success).toBe(false);
+  source.sha256 = "1e7dc6d6c16565406afd121a89164b990879f5f47695e03b9c3fd0f07395a4ca";
+  expect(datasetSchema.safeParse({items:[item]}).success).toBe(true);
+  expect(datasetSchema.safeParse({items:[{...item,sources:["https://example.org/facts"]}]}).success).toBe(false);
+});

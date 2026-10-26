@@ -28,3 +28,15 @@ CREATE TABLE IF NOT EXISTS rate_limits (
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS signed_tx text;
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS broadcast_hash text;
 CREATE TABLE IF NOT EXISTS worker_locks(name text PRIMARY KEY,token uuid NOT NULL,expires_at timestamptz NOT NULL);
+
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS next_poll_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS poll_count integer NOT NULL DEFAULT 0;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS tx_started_at timestamptz;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS failure_kind text;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS failed_transactions jsonb NOT NULL DEFAULT '[]';
+CREATE INDEX IF NOT EXISTS jobs_ready ON jobs(state,next_poll_at,updated_at);
+
+ALTER TABLE jobs DROP CONSTRAINT IF EXISTS jobs_kind_check;
+ALTER TABLE jobs ADD CONSTRAINT jobs_kind_check CHECK(kind IN ('publish','submit','challenge','maintain'));
+
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS commitment_tx text;

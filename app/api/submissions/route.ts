@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { authorize, body, failure, rateLimit, HttpError } from "@/lib/auth";
 import { enqueue } from "@/lib/jobs";
 import { read } from "@/lib/chain";
-import { outputSchema, fetchEvidence } from "@/lib/evidence";
+import { outputSchema, datasetSchema, fetchEvidence } from "@/lib/evidence";
 import type { Benchmark } from "@/lib/types";
 import { startHostedWorker } from "@/lib/background";
 export const maxDuration = 300;
@@ -30,6 +30,11 @@ export async function POST(req: Request) {
       Object.keys(outputs.outputs).length !== benchmark.item_count
     )
       throw new HttpError(400, "The output hash or item count does not match");
+    const datasetRaw = await fetchEvidence(benchmark.dataset_url);
+    const dataset = datasetSchema.parse(JSON.parse(datasetRaw));
+    if (createHash("sha256").update(datasetRaw).digest("hex") !== benchmark.content_hash ||
+        dataset.items.some((item) => !Object.hasOwn(outputs.outputs, item.id)))
+      throw new HttpError(400, "Output identifiers differ from the committed dataset");
     const job = await enqueue(owner, "submit", data, req.headers.get("idempotency-key"));
     startHostedWorker();
     return Response.json(job, { status: 202 });

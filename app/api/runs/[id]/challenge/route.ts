@@ -1,7 +1,7 @@
 import { authorize, failure, rateLimit, HttpError } from "@/lib/auth";
 import { enqueue } from "@/lib/jobs";
 import { read } from "@/lib/chain";
-import type { Run, Benchmark } from "@/lib/types";
+import type { Run } from "@/lib/types";
 import { startHostedWorker } from "@/lib/background";
 export const maxDuration = 300;
 export async function POST(
@@ -15,15 +15,12 @@ export async function POST(
     const run = await read<Run>("office", "get_run", [id]);
     if (run.owner === owner || run.status !== "published")
       throw new HttpError(409, "This run is not available for your challenge");
-    const b = await read<Benchmark>("registry", "get_benchmark", [
-      run.benchmark_id,
-    ]);
-    if (b.item_count - run.excluded.length < b.sample_size)
-      throw new HttpError(409, "Every fresh sample has been used");
+    if (Date.now() / 1000 >= run.challenge_until)
+      throw new HttpError(409, "The challenge window has closed");
     const job = await enqueue(
       owner,
       "challenge",
-      { run_id: id },
+      { run_id: id, round_number: run.round_count },
       req.headers.get("idempotency-key"),
     );
     startHostedWorker();

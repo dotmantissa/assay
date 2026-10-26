@@ -2,6 +2,7 @@ import "./network";
 import { createClient } from "genlayer-js";
 import { studionet } from "genlayer-js/chains";
 import { privateKeyToAccount } from "viem/accounts";
+import { TransactionHashVariant } from "genlayer-js/types";
 import type { CalldataEncodable, GenLayerTransaction } from "genlayer-js/types";
 import { readFileSync } from "node:fs";
 import { keccak256, parseEventLogs } from "viem";
@@ -53,22 +54,25 @@ export async function read<T>(
     functionName: method,
     args,
     jsonSafeReturn: true,
+    transactionHashVariant: TransactionHashVariant.LATEST_FINAL,
   })) as T;
 }
 export function executionSucceeded(tx: GenLayerTransaction): boolean {
   return tx.consensus_data?.leader_receipt?.[0]?.execution_result === "SUCCESS";
 }
+export class TerminalTransactionError extends Error {}
+
 export async function receipt(hash: string) {
   const tx = await client().getTransaction({
     hash: hash as import("genlayer-js/types").TransactionHash,
   });
-  if (["ACCEPTED", "FINALIZED"].includes(String(tx.statusName))) {
+  if (String(tx.statusName) === "FINALIZED") {
     if (!executionSucceeded(tx))
-      throw new Error(`Contract execution failed for ${hash}`);
+      throw new TerminalTransactionError(`Contract execution failed for ${hash}`);
     return tx;
   }
   if (["UNDETERMINED", "CANCELED"].includes(String(tx.statusName)))
-    throw new Error(`Consensus did not accept ${hash}`);
+    throw new TerminalTransactionError(`Consensus did not accept ${hash}`);
   return null;
 }
 export async function write(
@@ -103,7 +107,7 @@ export async function resumeBroadcast(raw: string, rootHash: string) {
     }
     tx = await c.getTransactionReceipt({ hash: rootHash as `0x${string}` });
   }
-  if (tx.status === "reverted") throw new Error("Broadcast reverted");
+  if (tx.status === "reverted") throw new TerminalTransactionError("Broadcast reverted");
   const events = parseEventLogs({
     abi: studionet.consensusMainContract!.abi,
     eventName: "NewTransaction",

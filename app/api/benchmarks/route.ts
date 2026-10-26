@@ -11,7 +11,7 @@ const schema = z
     dataset_url: z.url().startsWith("https://"),
     content_hash: z.string().regex(/^[a-f0-9]{64}$/),
     rubric: z.string().min(20).max(12000),
-    sample_size: z.number().int().min(1).max(100),
+    sample_size: z.number().int().min(1).max(100).optional(),
     scale: z.number().int().min(1).max(100),
     tolerance_bps: z.number().int().min(0).max(1000),
     overlap_bps: z.number().int().min(5000).max(10000),
@@ -26,16 +26,16 @@ export async function POST(req: Request) {
     const dataset = datasetSchema.parse(JSON.parse(raw));
     if (
       createHash("sha256").update(raw).digest("hex") !== data.content_hash ||
-      data.sample_size > dataset.items.length
+      (data.sample_size !== undefined && data.sample_size !== dataset.items.length)
     )
       return Response.json(
-        { error: "The dataset hash or sample size does not match" },
+        { error: "The dataset hash or full coverage count does not match" },
         { status: 400 },
       );
     const job = await enqueue(
       owner,
       "publish",
-      data,
+      { ...data, sample_size: dataset.items.length },
       req.headers.get("idempotency-key"),
     );
     startHostedWorker();

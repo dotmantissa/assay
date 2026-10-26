@@ -11,13 +11,16 @@ export type Benchmark = {
   item_count: number;
   sampling_rule: string;
   publisher: string;
+  protocol: number;
+  evidence_rule: string;
+  finality?: "finalized";
 };
 export type Grade = {
   id: string;
   score: number;
   incorrect: boolean;
   reason: string;
-  sources?: { url: string; text: string }[];
+  sources?: { url: string; text: string; sha256: string; as_of: string }[];
 };
 export type Round = {
   number: number;
@@ -46,6 +49,14 @@ export type Run = {
   status: string;
   round_count: number;
   survived: number;
+  deadline: number;
+  challenge_until: number;
+  pending_operation?: string;
+  terminal_status?: string;
+  protocol: number;
+  provenance: string;
+  certification: string;
+  finality?: "finalized";
   excluded: number[];
   score_bps: number | null;
   low_bps?: number;
@@ -56,15 +67,21 @@ export type Run = {
 export type Job = {
   id: string;
   owner_id: string;
-  kind: "publish" | "submit" | "challenge";
+  kind: "publish" | "submit" | "challenge" | "maintain";
   payload: Record<string, unknown>;
   state: string;
   step: number;
   tx_hash: string | null;
+  commitment_tx: string | null;
   transactions: string[];
   result_id: string;
   attempts: number;
   lease_token: string;
   error: string | null;
   created_at: string;
+  signed_tx: string | null;
+  broadcast_hash: string | null;
+  tx_started_at: string | null;
+  poll_count: number;
+  failure_kind: string | null;
 };

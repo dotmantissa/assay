@@ -6,16 +6,23 @@ import { curlFetch } from "./network";
 import { z } from "zod";
 import { HttpError } from "./auth";
 import { db } from "./db";
+export const sourceSchema = z.object({
+  url: z.url().startsWith("https://").max(2048),
+  text: z.string().min(1).refine((text) => Buffer.byteLength(text) <= 18000),
+  sha256: z.string().regex(/^[a-f0-9]{64}$/),
+  as_of: z.iso.datetime({ offset: true }),
+}).strict().refine((source) => createHash("sha256").update(source.text).digest("hex") === source.sha256,
+  "Source text must match its committed SHA256");
 export const itemSchema = z
   .object({
     id: z.string().min(1).max(100),
     question: z.string().min(1).max(16000),
     reference: z.string().max(16000).optional(),
-    sources: z.array(z.url().startsWith("https://")).max(3).optional(),
+    sources: z.array(sourceSchema).max(3).optional(),
   })
   .strict();
 export const datasetSchema = z
-  .object({ items: z.array(itemSchema).min(1).max(10000) })
+  .object({ items: z.array(itemSchema).min(1).max(100) })
   .strict()
   .refine((d) => new Set(d.items.map((i) => i.id)).size === d.items.length);
 export const outputSchema = z
