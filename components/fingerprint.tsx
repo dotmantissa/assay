@@ -6,8 +6,8 @@ export function Fingerprint({ grades = [] }: { grades?: Grade[] }) {
       role="img"
       aria-label={
         grades.length
-          ? `${grades.filter((g) => !g.incorrect).length} correct and ${grades.filter((g) => g.incorrect).length} incorrect sampled answers`
-          : "No sampled answers yet"
+          ? `${grades.filter((g) => !g.incorrect).length} correct and ${grades.filter((g) => g.incorrect).length} incorrect graded answers`
+          : "No graded answers yet"
       }
     >
       {grades.length

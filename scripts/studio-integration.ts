@@ -18,30 +18,53 @@ const state = existsSync(statePath)
 if (state.protocol !== 2) {
   const previous = {...state}; delete previous.history;
   state.history = [...(state.history || []), previous];
-  state.transactions = {}; state.addresses = {}; state.checks = {}; state.protocol = 2;
+  state.transactions = {}; state.addresses = {}; state.checks = {}; state.receipts = {}; state.signed = {}; state.protocol = 2;
   delete state.recovery;
   delete state.original;
   delete state.challenge;
 }
-const c = client(true);
+state.receipts ||= {}; state.signed ||= {};
+let activeKey = "";
+const c = client(true, async (raw, hash) => {
+  if (!activeKey) throw new Error("No active integration operation");
+  state.signed[activeKey] = {raw, hash}; save();
+});
+async function rpc<T>(call: () => Promise<T>): Promise<T> {
+  for (;;) {
+    try { return await call(); } catch (error) {
+      if (!(error instanceof Error) || !/rate limit/i.test(error.message)) throw error;
+      console.log("Studio rate limit; saved progress retained, retrying after 60 seconds");
+      await new Promise(resolve => setTimeout(resolve, 60000));
+    }
+  }
+}
 function save() {
   writeFileSync(statePath + ".tmp", JSON.stringify(state, null, 2) + "\n");
   renameSync(statePath + ".tmp", statePath);
 }
 async function transaction(key: string, send: () => Promise<string>, expectedFailure = false) {
+  if (state.receipts[key]) return state.receipts[key];
+  activeKey = key;
   if (!state.transactions[key]) {
-    state.transactions[key] = await send();
+    state.transactions[key] = await rpc(() => state.signed[key]
+      ? resumeBroadcast(state.signed[key].raw, state.signed[key].hash)
+      : send());
     save();
     console.log(key + " submitted: " + state.transactions[key]);
   }
   for (let attempt = 0; attempt < 150; attempt++) {
-    const tx = await c.getTransaction({
+    const tx = await rpc(() => c.getTransaction({
       hash: state.transactions[key] as TransactionHash,
-    });
+    }));
     if (String(tx.statusName) === "FINALIZED") {
       if (executionSucceeded(tx) === expectedFailure)
         throw new Error(key + (expectedFailure ? " unexpectedly succeeded" : " execution failed"));
       state.checks[key] = expectedFailure ? "REJECTED_AS_EXPECTED" : "SUCCESS";
+      state.receipts[key] = {hash: state.transactions[key], status: "FINALIZED", execution: expectedFailure ? "ERROR" : "SUCCESS",
+        to_address: tx.to_address || tx.recipient, validator_count: tx.consensus_data?.validators?.length || tx.lastRound?.roundValidators?.length || 0,
+        votes: tx.consensus_data?.votes || tx.lastRound?.validatorVotesName || {},
+        error: expectedFailure ? tx.consensus_data?.leader_receipt?.[0]?.error : undefined};
+      delete state.signed[key];
       save();
       return tx;
     }
@@ -74,13 +97,13 @@ async function read<T>(
   method: string,
   args: CalldataEncodable[] = [],
 ) {
-  return (await c.readContract({
+  return (await rpc(() => c.readContract({
     address: address as `0x${string}`,
     functionName: method,
     args,
     jsonSafeReturn: true,
     transactionHashVariant: TransactionHashVariant.LATEST_FINAL,
-  })) as T;
+  }))) as T;
 }
 const productionRegistry = addresses().registry;
 if (!productionRegistry) throw new Error("Deploy production registry first");
@@ -164,12 +187,12 @@ await settled("cancelled-run:close");
 if ((await read<Run>(office,"get_run",["cancelled-run"])).status !== "cancelled") throw new Error("Cancellation not acknowledged");
 state.withdrawRecipient ||= "0x"+createHash("sha256").update("Assay runtime withdrawal:"+revision).digest("hex").slice(0,40);
 if (state.withdrawBefore === undefined) {
-  state.withdrawBefore = String(await c.getBalance({address:state.withdrawRecipient}));
+  state.withdrawBefore = String(await rpc(() => c.getBalance({address:state.withdrawRecipient})));
   save();
 }
 await write("withdraw",vault,"withdraw_for",["integration-submitter",10,state.withdrawRecipient]);
 for (let attempt=0;attempt<40;attempt++) {
-  const balance = await c.getBalance({address:state.withdrawRecipient});
+  const balance = await rpc(() => c.getBalance({address:state.withdrawRecipient}));
   if (balance >= BigInt(state.withdrawBefore)+10n) {
     state.checks.nativeWithdrawal = "SUCCESS";
     state.withdrawDelta = String(balance-BigInt(state.withdrawBefore));

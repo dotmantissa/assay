@@ -2,7 +2,7 @@
 import { usePrivy } from "@privy-io/react-auth";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { LoaderCircle, CheckCircle2, RefreshCw } from "lucide-react";
+import { LoaderCircle, CheckCircle2, RefreshCw, XCircle } from "lucide-react";
 type Progress = {
   id: string;
   kind: string;
@@ -77,12 +77,16 @@ function EmailProgress({ id }: { id: string }) {
     <div className="job-panel">
       {job?.state === "complete" ? (
         <CheckCircle2 size={35} />
+      ) : job?.state === "cancelled" ? (
+        <XCircle size={35} />
       ) : (
         <LoaderCircle className="spin" size={32} />
       )}
       <h2>
         {job?.state === "complete"
           ? "The record is ready."
+          : job?.state === "cancelled"
+            ? "The assessment closed without a verdict."
           : job?.state === "failed"
             ? "A pause, with your progress saved."
             : "The assay is underway."}
@@ -104,7 +108,7 @@ function EmailProgress({ id }: { id: string }) {
           Retry this step
         </button>
       )}
-      {job?.state === "complete" && (
+      {job && ["complete", "cancelled"].includes(job.state) && (
         <Link
           className="button primary"
           href={

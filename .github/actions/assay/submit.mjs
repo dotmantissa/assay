@@ -32,13 +32,13 @@ console.log("Assay queued: " + job.id);
 const deadline = Date.now() + Number(env.ASSAY_TIMEOUT) * 60_000;
 while (Date.now() < deadline) {
   const state = await request("/api/jobs/" + job.id);
-  if (state.state === "failed")
+  if (["failed", "cancelled"].includes(state.state))
     throw new Error(state.error || "Assay step failed");
   if (state.state === "complete") {
     const url = base + "/runs/" + state.result_id;
     const { appendFileSync } = await import("node:fs");
     appendFileSync(env.GITHUB_OUTPUT, `record-url=${url}\n`);
-    console.log("Assayed record: " + url);
+    console.log("Finalized artifact record: " + url);
     process.exit(0);
   }
   await new Promise((resolve) => setTimeout(resolve, 15000));
