@@ -54,7 +54,7 @@ export default async function Benchmarks() {
               </dl>
               <details>
                 <summary>
-                  <LockKeyhole size={16} /> Locked evidence and sampling
+                  <LockKeyhole size={16} /> Locked evidence and complete coverage
                 </summary>
                 <code>{b.content_hash}</code>
                 <p>{b.sampling_rule}</p>

@@ -14,7 +14,7 @@ Three Python contracts own the evidence and verdicts:
 
 | Contract | Responsibility |
 | --- | --- |
-| Benchmark registry | Immutable dataset hash, rubric, sampling and comparison rules |
+| Benchmark registry | Immutable dataset hash, rubric, full coverage and comparison rules |
 | Assay office | Output commitment, finalized receipt binding, full coverage item consensus, publication and acknowledged challenge settlement |
 | Bond vault | Native deposits, locks, authorized settlement and withdrawals |
 
@@ -50,11 +50,11 @@ Only the public Privy app ID goes into the browser bundle. Never prefix database
 
 Studio is gasless. This deployment disables financial bond backing with a zero minimum. The vault implements native escrow, but a Studio score must never be described as financially collateralized. TVG is transaction value generated, not an invented token.
 
-Sampling uses the verified commitment transaction hash and SHA256 ranking without replacement. The pinned VM does not expose its transaction hash directly, so a separate transaction verifies the commitment through Studio RPC before sampling. This makes the process reproducible but permits transaction hash grinding. It is not a randomness beacon.
+Every round covers every dataset item. A successful finalized transaction receipt binds the exact commitment, including canonical address arguments. Transaction hashes do not select questions, so repeated commitments cannot select favorable subsets. Scores describe the complete committed artifact rather than a nominal random-sample confidence interval.
 
 ## Evidence format
 
-A dataset is a JSON object containing `items`. Each item has a unique string `id` and a string `question`. Optional `reference` text supplies an answer key. Optional `sources` supplies up to three public HTTPS sources for questions that need current ground truth.
+A dataset is a JSON object containing `items`. Each item has a unique string `id` and a string `question`. Optional `reference` text supplies an answer key. Optional `sources` supplies up to three committed snapshots. Each contains `url`, `text`, `sha256` of the UTF-8 text and a timezone-qualified ISO `as_of` timestamp declared by the publisher. All rounds use those snapshots; live pages are not grading inputs.
 
 An output document contains `outputs`, a map from every dataset item ID to the model’s full answer as a string. Its SHA256 must describe the exact served bytes. Reformatting a JSON document changes its hash.
 

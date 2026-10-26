@@ -89,7 +89,7 @@ export default async function RunPage({
               <Fingerprint grades={round.grades} />
               <p className="field-help">
                 {round.grades.length} of {round.sample.length} answers examined
-                {round.method ? `. ${round.method} confidence interval.` : "."}
+                {round.method ? `. ${round.method}.` : "."}
               </p>
               {round.challenge_successful !== undefined && (
                 <p>
