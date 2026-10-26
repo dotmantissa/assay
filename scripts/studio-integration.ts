@@ -142,7 +142,7 @@ if (state.checks.broadcastRecovery !== "SUCCESS") {
     try { await durable.writeContract({address:vault,functionName:"lock",args:["recovery-probe","integration-submitter",10,"recovery-probe",0,"run"],value:0n}); } catch { /* intentional */ }
     if (!state.recovery) throw new Error("Signed recovery transaction missing");
   }
-  state.transactions.broadcastRecovery ||= await resumeBroadcast(state.recovery.raw,state.recovery.hash);
+  state.transactions.broadcastRecovery ||= await rpc(() => resumeBroadcast(state.recovery.raw,state.recovery.hash));
   save();
   await transaction("broadcastRecovery", async () => state.transactions.broadcastRecovery);
   if (!await read<boolean>(vault,"lock_exists",["recovery-probe"])) throw new Error("Recovered lock missing");
