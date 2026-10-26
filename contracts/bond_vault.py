@@ -1,8 +1,48 @@
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 from genlayer import *
-from genlayer.py.public_abi import StorageType
+import genlayer.py.calldata as calldata
 import datetime
 import json
+
+
+def rlp_prefix(base: int, length: int) -> bytes:
+    if length < 56:
+        return bytes([base + length])
+    size = (length.bit_length() + 7) // 8
+    return bytes([base + 55 + size]) + length.to_bytes(size, 'big')
+
+
+def finalized_view(address: Address, method: str, args: list) -> dict:
+    # Studio's native cross-contract host rejects LATEST_FINAL storage reads.
+    # Validators independently query its finalized RPC snapshot instead of using nonfinal accounting.
+    payload = calldata.encode({'method': method, 'args': args})
+    encoded = payload if len(payload) == 1 and payload[0] < 128 else rlp_prefix(128, len(payload)) + payload
+    body = encoded + b'\x00'
+    data = '0x' + (rlp_prefix(192, len(body)) + body).hex()
+    def query():
+        response = gl.nondet.web.post('https://studio.genlayer.com/api', body=json.dumps({
+            'jsonrpc': '2.0', 'id': 1, 'method': 'gen_call', 'params': [{
+                'type': 'read', 'to': str(address), 'from': '0x' + '00' * 20,
+                'data': data, 'transaction_hash_variant': 'latest-final'}]}).encode(),
+            headers={'Content-Type': 'application/json'})
+        if response.status != 200 or len(response.body) > 2_000_000:
+            raise gl.vm.UserError('[TRANSIENT] Finalized contract RPC unavailable')
+        try:
+            result = json.loads(response.body.decode()).get('result')
+            if isinstance(result, dict):
+                if result.get('status', {}).get('code', 0) != 0:
+                    raise ValueError('Finalized view failed')
+                result = result['data']
+            if not isinstance(result, str):
+                raise ValueError('Missing finalized result')
+            value = calldata.decode(bytes.fromhex(result.removeprefix('0x')))
+            if not isinstance(value, dict):
+                raise ValueError('Expected contract object')
+            return value
+        except Exception:
+            raise gl.vm.UserError('[TRANSIENT] Finalized contract state unavailable')
+    return gl.eq_principle.strict_eq(query)
+
 
 
 def now() -> int:
@@ -66,7 +106,7 @@ class BondVault(gl.Contract):
             raise gl.vm.UserError('[EXPECTED] Assay office only')
         # Read the finalized intent. Replays acknowledge the original result without moving funds again.
         if operation_id not in self.operations:
-            request = gl.get_contract_at(self.office).view(state=StorageType.LATEST_FINAL).get_operation(operation_id)
+            request = finalized_view(self.office, 'get_operation', [operation_id])
             locks = [self.get_lock(key) for key in request['locks']]
             if not locks or len({b['id'] for b in locks}) != len(locks) or any(b['settled'] for b in locks):
                 raise gl.vm.UserError('[EXPECTED] Bonds unavailable')

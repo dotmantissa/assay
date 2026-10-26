@@ -1,11 +1,14 @@
 from conftest import identity
 import pytest
+import sys
 from types import SimpleNamespace
 
 
 def wire(vault, monkeypatch, requests):
     from genlayer import gl
     emitted = []
+    monkeypatch.setattr(sys.modules[vault._instance.__class__.__module__], 'finalized_view',
+        lambda address, method, args: requests[args[0]])
     monkeypatch.setattr(gl._cached_gl if hasattr(gl, '_cached_gl') else gl, 'get_contract_at',
         lambda address: SimpleNamespace(view=lambda **kwargs: SimpleNamespace(get_operation=lambda op: requests[op]),
             emit=lambda **kwargs: SimpleNamespace(acknowledge=lambda op: emitted.append((op, kwargs))),

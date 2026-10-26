@@ -243,6 +243,9 @@ def test_expired_unused_lock_refund_and_tombstone(suite, direct_vm, direct_alice
 def test_unsuccessful_regrade_reduces_headline_and_friendly_regrade_cannot_raise_it(suite, direct_vm, direct_bob, monkeypatch):
     registry, vault, office = ready(suite, monkeypatch)
     registry.get_benchmark('b').update(scale=10, tolerance_bps=1000)
+    run = office.get_run('r')
+    run['benchmark'].update(scale=10, tolerance_bps=1000)
+    office._instance.runs['r'] = json.dumps(run)
     grade_all(office, direct_vm, 10)
     challenge(suite, direct_vm, direct_bob)
     grade_all(office, direct_vm, 9)

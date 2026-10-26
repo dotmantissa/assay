@@ -65,6 +65,9 @@ def suite(direct_vm, direct_deploy, direct_alice, monkeypatch):
             return SimpleNamespace(execute=lambda op: queued.append(('execute', op)), acknowledge=lambda op: queued.append(('acknowledge', op)))
         return SimpleNamespace(view=lambda **kwargs: target, emit=emit)
     monkeypatch.setattr(gl._cached_gl if hasattr(gl, '_cached_gl') else gl, 'get_contract_at', proxy)
+    for contract in (office, vault):
+        monkeypatch.setattr(sys.modules[contract._instance.__class__.__module__], 'finalized_view',
+            lambda address, method, args: getattr(proxy(address).view(), method)(*args))
     def drain():
         while queued:
             method, op = queued.pop(0)

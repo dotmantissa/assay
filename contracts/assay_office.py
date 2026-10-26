@@ -4,8 +4,47 @@ import genlayer.py.calldata as calldata
 import hashlib
 import json
 import datetime
-from genlayer.py.public_abi import StorageType
 import base64
+
+
+def rlp_prefix(base: int, length: int) -> bytes:
+    if length < 56:
+        return bytes([base + length])
+    size = (length.bit_length() + 7) // 8
+    return bytes([base + 55 + size]) + length.to_bytes(size, 'big')
+
+
+def finalized_view(address: Address, method: str, args: list) -> dict:
+    # Studio's native cross-contract host rejects LATEST_FINAL storage reads.
+    # Validators independently query its finalized RPC snapshot instead of using nonfinal accounting.
+    payload = calldata.encode({'method': method, 'args': args})
+    encoded = payload if len(payload) == 1 and payload[0] < 128 else rlp_prefix(128, len(payload)) + payload
+    body = encoded + b'\x00'
+    data = '0x' + (rlp_prefix(192, len(body)) + body).hex()
+    def query():
+        response = gl.nondet.web.post('https://studio.genlayer.com/api', body=json.dumps({
+            'jsonrpc': '2.0', 'id': 1, 'method': 'gen_call', 'params': [{
+                'type': 'read', 'to': str(address), 'from': '0x' + '00' * 20,
+                'data': data, 'transaction_hash_variant': 'latest-final'}]}).encode(),
+            headers={'Content-Type': 'application/json'})
+        if response.status != 200 or len(response.body) > 2_000_000:
+            raise gl.vm.UserError('[TRANSIENT] Finalized contract RPC unavailable')
+        try:
+            result = json.loads(response.body.decode()).get('result')
+            if isinstance(result, dict):
+                if result.get('status', {}).get('code', 0) != 0:
+                    raise ValueError('Finalized view failed')
+                result = result['data']
+            if not isinstance(result, str):
+                raise ValueError('Missing finalized result')
+            value = calldata.decode(bytes.fromhex(result.removeprefix('0x')))
+            if not isinstance(value, dict):
+                raise ValueError('Expected contract object')
+            return value
+        except Exception:
+            raise gl.vm.UserError('[TRANSIENT] Finalized contract state unavailable')
+    return gl.eq_principle.strict_eq(query)
+
 
 
 def fetch_locked(url: str, expected: str) -> dict:
@@ -114,10 +153,10 @@ class AssayOffice(gl.Contract):
         return str(Address(actor)) if actor.startswith('0x') and len(actor) == 42 else actor
 
     def _benchmark(self, benchmark_id: str) -> dict:
-        return gl.get_contract_at(self.registry).view(state=StorageType.LATEST_FINAL).get_benchmark(benchmark_id)
+        return finalized_view(self.registry, 'get_benchmark', [benchmark_id])
 
     def _bond(self, lock_id: str, actor: str, run_id: str, number: int, role: str) -> None:
-        bond = gl.get_contract_at(self.vault).view(state=StorageType.LATEST_FINAL).get_lock(lock_id)
+        bond = finalized_view(self.vault, 'get_lock', [lock_id])
         if lock_id in self.bond_uses or bond['owner'] != actor or bond['settled'] or bond['run_id'] != run_id or bond['round'] != number or bond['role'] != role or now() >= bond['expires_at']:
             raise gl.vm.UserError('[EXPECTED] Unused associated bond required')
 
@@ -145,7 +184,7 @@ class AssayOffice(gl.Contract):
         self.bond_uses[run_id] = json.dumps({'run_id': run_id, 'round': 0, 'role': 'run'})
         self.runs[run_id] = json.dumps({'id': run_id, 'benchmark_id': benchmark_id, 'outputs_url': outputs_url,
             'outputs_hash': outputs_hash, 'model': model, 'owner': actor, 'sender': str(gl.message.sender_address),
-            'status': 'committed', 'round_count': 0, 'survived': 0, 'excluded': [], 'score_bps': None,
+            'benchmark': benchmark, 'status': 'committed', 'round_count': 0, 'survived': 0, 'excluded': [], 'score_bps': None,
             'evidence_grades': [], 'deadline': now() + 86400, 'challenge_until': 0,
             'provenance': 'unverified submitter label', 'certification': 'submitted artifact only', 'protocol': 2})
         self.order.append(run_id)
@@ -195,7 +234,7 @@ class AssayOffice(gl.Contract):
             raise gl.vm.UserError('[EXPECTED] Round already started')
         if now() >= run['deadline']:
             raise gl.vm.UserError('[EXPECTED] Round deadline elapsed')
-        benchmark = self._benchmark(run['benchmark_id'])
+        benchmark = run['benchmark']
         commitment = self._verify_commit(run, commitment_tx)
         sample = list(range(benchmark['item_count']))
         number = run['round_count']
@@ -249,7 +288,7 @@ class AssayOffice(gl.Contract):
         data = self.get_round(run_id, run['round_count'] - 1)
         if sample_position != len(data['grades']) or sample_position >= len(data['sample']):
             raise gl.vm.UserError('[EXPECTED] Items must be graded once in sample order')
-        data['grades'] += self._consensus(run, self._benchmark(run['benchmark_id']), [data['sample'][sample_position]], [])
+        data['grades'] += self._consensus(run, run['benchmark'], [data['sample'][sample_position]], [])
         self.rounds[run_id + ':' + str(data['number'])] = json.dumps(data)
 
     def _request(self, operation_id: str, request: dict) -> None:
@@ -264,7 +303,7 @@ class AssayOffice(gl.Contract):
         data = self.get_round(run_id, run['round_count'] - 1)
         if len(data['grades']) != len(data['sample']):
             raise gl.vm.UserError('[EXPECTED] Complete all item grades first')
-        benchmark = self._benchmark(run['benchmark_id'])
+        benchmark = run['benchmark']
         verified = self._consensus(run, benchmark, data['sample'], data['grades'])
         data.update(assessment(verified, benchmark['scale']), grades=verified)
         combined = accumulated(run['evidence_grades'], verified)
@@ -299,7 +338,7 @@ class AssayOffice(gl.Contract):
         request = self.get_operation(operation_id)
         if self.acknowledged.get(operation_id, False):
             return
-        result = gl.get_contract_at(self.vault).view(state=StorageType.LATEST_FINAL).get_operation(operation_id)
+        result = finalized_view(self.vault, 'get_operation', [operation_id])
         if result != request:
             raise gl.vm.UserError('[EXPECTED] Vault settlement not finalized')
         self.acknowledged[operation_id] = True
@@ -325,7 +364,7 @@ class AssayOffice(gl.Contract):
     @gl.public.write
     def refund_unused(self, lock_id: str, actor: str) -> None:
         actor = self._actor(actor)
-        bond = gl.get_contract_at(self.vault).view(state=StorageType.LATEST_FINAL).get_lock(lock_id)
+        bond = finalized_view(self.vault, 'get_lock', [lock_id])
         if lock_id in self.bond_uses or bond['settled'] or bond['owner'] != actor:
             raise gl.vm.UserError('[EXPECTED] Unused owned bond required')
         self._refund_bond(bond)
@@ -339,7 +378,7 @@ class AssayOffice(gl.Contract):
 
     @gl.public.write
     def expire_unused(self, lock_id: str) -> None:
-        bond = gl.get_contract_at(self.vault).view(state=StorageType.LATEST_FINAL).get_lock(lock_id)
+        bond = finalized_view(self.vault, 'get_lock', [lock_id])
         if lock_id in self.bond_uses or bond['settled'] or now() < bond['expires_at']:
             raise gl.vm.UserError('[EXPECTED] Unused bond has not expired')
         self._refund_bond(bond)
