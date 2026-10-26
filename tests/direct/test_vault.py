@@ -75,7 +75,7 @@ def test_vault_authorization_and_lock_checks(direct_vm, direct_deploy, direct_al
     with direct_vm.expect_revert('Positive'):
         vault.deposit(identity(direct_bob))
     with direct_vm.expect_revert('Insufficient'):
-        vault.withdraw(1, identity(direct_bob))
+        vault.withdraw('w', 1, identity(direct_bob))
     direct_vm.sender = direct_alice
     vault.configure(identity(direct_bob))
     with direct_vm.expect_revert('permanent'):
@@ -89,16 +89,56 @@ def test_vault_authorization_and_lock_checks(direct_vm, direct_deploy, direct_al
         vault.lock('r', identity(direct_alice), 0, 'r', 0, 'run')
 
 
-def test_withdrawal_emits_finalized_transfer(direct_vm, direct_deploy, direct_alice, monkeypatch):
+def test_withdrawal_uses_native_external_message_and_waits_for_delivery(direct_vm, direct_deploy, direct_alice, monkeypatch):
     direct_vm.sender = direct_alice
     vault = direct_deploy('contracts/bond_vault.py', 0)
-    emitted = wire(vault, monkeypatch, {})
+    emitted = []
+    def hook(vm, request):
+        if 'EthSend' in request:
+            emitted.append(request['EthSend'])
+            return b''
+    direct_vm._gl_call_hook = hook
     direct_vm.value = 50; vault.deposit(identity(direct_alice)); direct_vm.value = 0
-    vault.withdraw(20, '0x'+'11'*20)
+    direct_vm.deal(vault.address, 50)
+    vault.withdraw('w', 20, '0x'+'11'*20)
     assert vault.get_balance(identity(direct_alice)) == 30
-    assert emitted[0]['on'] == 'finalized' and emitted[0]['value'] == 20
+    assert vault.get_withdrawal('w')['status'] == 'pending'
+    assert vault.configuration()['liability'] == 50
+    assert len(emitted) == 1 and emitted[0]['value'] == 20 and emitted[0]['calldata'] == b''
+    monkeypatch.setattr(vault._instance, '_withdrawal_proof', lambda request, tx: {'status':'confirmed','child':'child'})
+    vault.reconcile_withdrawal('w', 'tx')
+    vault.reconcile_withdrawal('w', 'tx')
+    assert vault.get_withdrawal('w')['status'] == 'confirmed'
+    assert vault.configuration()['liability'] == 30
+    with direct_vm.expect_revert('Unique'):
+        vault.withdraw('w', 1, '0x'+'11'*20)
     with direct_vm.expect_revert('Insufficient'):
-        vault.withdraw(31, '0x'+'11'*20)
+        vault.withdraw('w2', 31, '0x'+'11'*20)
+
+
+def test_failed_withdrawal_refund_requires_returned_funds_and_is_idempotent(direct_vm, direct_deploy, direct_alice, direct_bob, monkeypatch):
+    direct_vm.sender = direct_alice
+    vault = direct_deploy('contracts/bond_vault.py', 0)
+    direct_vm.value = 50; vault.deposit(identity(direct_alice)); direct_vm.value = 0
+    direct_vm.deal(vault.address, 50)
+    vault.withdraw('w', 20, '0x'+'11'*20)
+    direct_vm.deal(vault.address, 30)
+    monkeypatch.setattr(vault._instance, '_withdrawal_proof', lambda request, tx: {'status':'failed','child':'child'})
+    vault.reconcile_withdrawal('w','tx')
+    assert vault.get_withdrawal('w')['status'] == 'awaiting_returned_funds'
+    assert vault.get_balance(identity(direct_alice)) == 30
+    direct_vm.sender = direct_bob
+    direct_vm.value = 20; vault.deposit(identity(direct_bob)); direct_vm.value = 0
+    direct_vm.deal(vault.address, 50)
+    vault.reconcile_withdrawal('w','tx')
+    assert vault.get_withdrawal('w')['status'] == 'awaiting_returned_funds'
+    direct_vm.deal(vault.address, 70)
+    vault.reconcile_withdrawal('w','tx')
+    vault.reconcile_withdrawal('w','tx')
+    assert vault.get_withdrawal('w')['status'] == 'refunded'
+    assert vault.get_balance(identity(direct_alice)) == 50
+    assert vault.get_balance(identity(direct_bob)) == 20
+    assert vault.configuration()['liability'] == 70
 
 
 def test_pinned_sdk_schema_marks_deposit_payable(direct_deploy):

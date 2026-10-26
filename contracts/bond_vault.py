@@ -2,6 +2,7 @@
 from genlayer import *
 import genlayer.py.calldata as calldata
 import datetime
+import base64
 import json
 
 
@@ -49,6 +50,14 @@ def now() -> int:
     return int(datetime.datetime.fromisoformat(gl.message_raw['datetime']).timestamp())
 
 
+@gl.evm.contract_interface
+class NativeRecipient:
+    class View:
+        pass
+    class Write:
+        pass
+
+
 class BondVault(gl.Contract):
     owner: Address
     office: Address
@@ -57,6 +66,8 @@ class BondVault(gl.Contract):
     balances: TreeMap[str, u256]
     locks: TreeMap[str, str]
     operations: TreeMap[str, str]
+    liability: u256
+    withdrawals: TreeMap[str, str]
 
     def __init__(self, minimum: int):
         if minimum < 0:
@@ -64,6 +75,7 @@ class BondVault(gl.Contract):
         self.owner = gl.message.sender_address
         self.minimum = u256(minimum)
         self.configured = False
+        self.liability = u256(0)
 
     @gl.public.write
     def configure(self, office: str) -> None:
@@ -85,6 +97,7 @@ class BondVault(gl.Contract):
         if gl.message.value == 0:
             raise gl.vm.UserError('[EXPECTED] Positive deposit required')
         self.balances[actor] = u256(self.balances.get(actor, u256(0)) + gl.message.value)
+        self.liability = u256(int(self.liability) + int(gl.message.value))
 
     @gl.public.write
     def lock(self, lock_id: str, actor: str, amount: int, run_id: str, round_number: int, role: str) -> None:
@@ -136,21 +149,104 @@ class BondVault(gl.Contract):
             self.operations[operation_id] = json.dumps(request)
         gl.get_contract_at(self.office).emit(on='finalized').acknowledge(operation_id)
 
-    def _withdraw(self, actor: str, amount: int, recipient: str) -> None:
+    def _withdraw(self, withdrawal_id: str, actor: str, amount: int, recipient: str, method: str, args: list) -> None:
         available = int(self.balances.get(actor, u256(0)))
+        if not withdrawal_id or len(withdrawal_id) > 80 or withdrawal_id in self.withdrawals:
+            raise gl.vm.UserError('[EXPECTED] Unique withdrawal identifier required')
         if amount <= 0 or amount > available:
             raise gl.vm.UserError('[EXPECTED] Insufficient withdrawable balance')
+        if int(self.balance) < amount:
+            raise gl.vm.UserError('[EXPECTED] Native funds unavailable')
         destination = Address(recipient)
         self.balances[actor] = u256(available - amount)
-        gl.get_contract_at(destination).emit_transfer(value=u256(amount), on='finalized')
+        self.withdrawals[withdrawal_id] = json.dumps({'id': withdrawal_id, 'owner': actor, 'amount': amount,
+            'recipient': str(destination), 'sender': str(gl.message.sender_address), 'method': method,
+            'args': args, 'status': 'pending', 'parent': '', 'child': ''})
+        # EOAs require an external native message, not a GenVM __receive__ call.
+        NativeRecipient(destination).emit_transfer(value=u256(amount))
 
     @gl.public.write
-    def withdraw(self, amount: int, recipient: str) -> None:
-        self._withdraw(str(gl.message.sender_address), amount, recipient)
+    def withdraw(self, withdrawal_id: str, amount: int, recipient: str) -> None:
+        self._withdraw(withdrawal_id, str(gl.message.sender_address), amount, recipient,
+                       'withdraw', [withdrawal_id, amount, recipient])
 
     @gl.public.write
-    def withdraw_for(self, actor: str, amount: int, recipient: str) -> None:
-        self._withdraw(self._actor(actor), amount, recipient)
+    def withdraw_for(self, withdrawal_id: str, actor: str, amount: int, recipient: str) -> None:
+        self._withdraw(withdrawal_id, self._actor(actor), amount, recipient,
+                       'withdraw_for', [withdrawal_id, actor, amount, recipient])
+
+    @gl.public.view
+    def get_withdrawal(self, withdrawal_id: str) -> dict:
+        if withdrawal_id not in self.withdrawals:
+            raise gl.vm.UserError('[EXPECTED] Withdrawal not found')
+        return json.loads(self.withdrawals[withdrawal_id])
+
+    def _withdrawal_proof(self, request: dict, tx_hash: str) -> dict:
+        if len(tx_hash) != 66 or not tx_hash.startswith('0x') or any(c not in '0123456789abcdef' for c in tx_hash[2:]):
+            raise gl.vm.UserError('[EXPECTED] Invalid withdrawal transaction hash')
+        def verify():
+            def transaction(identifier):
+                response = gl.nondet.web.post('https://studio.genlayer.com/api', body=json.dumps({
+                    'jsonrpc': '2.0', 'id': 1, 'method': 'eth_getTransactionByHash', 'params': [identifier]}).encode(),
+                    headers={'Content-Type': 'application/json'})
+                if response.status != 200 or len(response.body) > 2_000_000:
+                    raise gl.vm.UserError('[TRANSIENT] Withdrawal receipt unavailable')
+                try:
+                    value = json.loads(response.body.decode()).get('result')
+                except Exception:
+                    raise gl.vm.UserError('[TRANSIENT] Withdrawal receipt unavailable')
+                if not isinstance(value, dict):
+                    raise gl.vm.UserError('[TRANSIENT] Withdrawal receipt unavailable')
+                return value
+            parent = transaction(tx_hash)
+            receipt = parent.get('consensus_data', {}).get('leader_receipt', [])
+            if parent.get('status') != 'FINALIZED':
+                raise gl.vm.UserError('[TRANSIENT] Withdrawal parent is not finalized')
+            if not receipt or receipt[0].get('execution_result') != 'SUCCESS':
+                raise gl.vm.UserError('[EXPECTED] Withdrawal request execution failed')
+            try:
+                decoded = calldata.decode(base64.b64decode(parent['data']['calldata']))
+            except Exception:
+                raise gl.vm.UserError('[EXPECTED] Invalid withdrawal calldata')
+            if not isinstance(decoded, dict):
+                raise gl.vm.UserError('[EXPECTED] Invalid withdrawal calldata')
+            names = ['withdrawal_id', 'amount', 'recipient'] if request['method'] == 'withdraw' else ['withdrawal_id', 'actor', 'amount', 'recipient']
+            args, kwargs = decoded.get('args', []), decoded.get('kwargs', {})
+            if not isinstance(args, list) or not isinstance(kwargs, dict) or len(args) > len(names) or any(k not in names[len(args):] for k in kwargs) or len(args) + len(kwargs) != len(names):
+                raise gl.vm.UserError('[EXPECTED] Withdrawal arguments differ')
+            committed = args + [kwargs[name] for name in names[len(args):]]
+            if str(parent.get('to_address', '')).lower() != str(gl.message.contract_address).lower() or str(parent.get('from_address', '')).lower() != request['sender'].lower() or decoded.get('method') != request['method'] or committed != request['args']:
+                raise gl.vm.UserError('[EXPECTED] Transaction does not request this withdrawal')
+            def integer(value):
+                return int(value, 16) if isinstance(value, str) and value.startswith('0x') else int(value)
+            for identifier in parent.get('triggered_transactions', []):
+                child = transaction(identifier)
+                if integer(child.get('type', -1)) != 0 or child.get('triggered_by') != tx_hash or str(child.get('from_address', '')).lower() != str(gl.message.contract_address).lower() or str(child.get('to_address', '')).lower() != request['recipient'].lower() or integer(child.get('value', 0)) != request['amount']:
+                    continue
+                if child.get('status') == 'FINALIZED' and child.get('value_credited') is True:
+                    return {'status': 'confirmed', 'child': identifier}
+                if child.get('status') == 'FINALIZED' and child.get('value_credited') is False:
+                    return {'status': 'failed', 'child': identifier}
+            return {'status': 'pending', 'child': ''}
+        return gl.eq_principle.strict_eq(verify)
+
+    @gl.public.write
+    def reconcile_withdrawal(self, withdrawal_id: str, tx_hash: str) -> None:
+        request = self.get_withdrawal(withdrawal_id)
+        if request['status'] in ('confirmed', 'refunded'):
+            return
+        proof = self._withdrawal_proof(request, tx_hash)
+        request.update(parent=tx_hash, child=proof['child'], status=proof['status'])
+        if proof['status'] == 'confirmed':
+            self.liability = u256(int(self.liability) - request['amount'])
+        elif proof['status'] == 'failed':
+            # Pending withdrawals remain liabilities until confirmed delivery or a fully backed refund.
+            if int(self.balance) >= int(self.liability):
+                self.balances[request['owner']] = u256(int(self.balances.get(request['owner'], u256(0))) + request['amount'])
+                request['status'] = 'refunded'
+            else:
+                request['status'] = 'awaiting_returned_funds'
+        self.withdrawals[withdrawal_id] = json.dumps(request)
 
     @gl.public.view
     def lock_exists(self, lock_id: str) -> bool:
@@ -175,4 +271,5 @@ class BondVault(gl.Contract):
     def configuration(self) -> dict:
         return {'owner': str(self.owner), 'office': str(self.office) if self.configured else '',
                 'configured': self.configured, 'minimum': int(self.minimum), 'asset': 'native',
-                'bonding_enabled': self.minimum > 0, 'protocol': 2}
+                'bonding_enabled': self.minimum > 0, 'protocol': 2, 'liability': int(self.liability),
+                'withdrawals': 'External native transfers; finalized receipt confirmation and backed failure refunds'}

@@ -256,3 +256,17 @@ def test_unsuccessful_regrade_reduces_headline_and_friendly_regrade_cannot_raise
     grade_all(office, direct_vm, 10)
     registry.drain()
     assert office.get_run('r')['score_bps'] == 9000
+
+
+def test_user_identifiers_cannot_alias_refund_and_close_operations(suite, direct_vm, direct_alice):
+    registry, vault, office = suite
+    actor = identity(direct_alice)
+    vault.lock('unused:collision', actor, 0, 'unused:collision', 0, 'run')
+    office.submit_run('unused:collision', 'b', OUT_URL, evidence(direct_vm, OUT_URL, OUTPUTS), 'Label', actor)
+    vault.lock('collision:close', actor, 0, 'collision:close', 0, 'run')
+    office.refund_unused('collision:close', actor)
+    office.cancel_run('unused:collision', actor)
+    registry.drain()
+    assert office.get_run('unused:collision')['status'] == 'cancelled'
+    assert vault.get_lock('unused:collision')['settled']
+    assert vault.get_lock('collision:close')['settled']

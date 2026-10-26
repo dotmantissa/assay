@@ -11,7 +11,7 @@ import { TransactionHashVariant } from "genlayer-js/types";
 import type { CalldataEncodable, TransactionHash } from "genlayer-js/types";
 import type { Benchmark, Run, Round } from "../lib/types";
 import { db } from "../lib/db";
-const statePath = "tests/integration/studio-receipts.json";
+const statePath = process.env.ASSAY_INTEGRATION_STATE_PATH || "tests/integration/studio-receipts.json";
 const state = existsSync(statePath)
   ? JSON.parse(readFileSync(statePath, "utf8"))
   : { transactions: {}, addresses: {}, checks: {} };
@@ -125,6 +125,7 @@ async function read<T>(
     transactionHashVariant: TransactionHashVariant.LATEST_FINAL,
   }))) as T;
 }
+if (state.withdrawal_failure) throw new Error("This saved historical scenario has a failed withdrawal; use test:lifecycle for current-source proof or ASSAY_INTEGRATION_STATE_PATH for a fresh suite");
 const productionRegistry = addresses().registry;
 if (!productionRegistry) throw new Error("Deploy production registry first");
 const hash = (path: string) => createHash("sha256").update(readFileSync(path)).digest("hex");
@@ -178,7 +179,7 @@ async function settled(operation: string) {
   // Finalized child execution proves vault application; its finalized callback proves office acknowledgement.
   // Poll transaction receipts rather than repeatedly running quota-heavy contract views.
   state.child_receipts ||= {};
-  const origin = operation.startsWith("unused:") ? "unusedRefund" : operation.endsWith(":close") ? "cancel" : "challengeFinalize";
+  const origin = operation.startsWith("unused:") ? "unusedRefund" : operation.startsWith("close:") ? "cancel" : "challengeFinalize";
   let parentKey = state.transactions["repair:"+operation] ? "repair:"+operation : origin;
   type StudioTransaction = Awaited<ReturnType<typeof c.getTransaction>> & {triggered_transactions?: string[]};
   const describe = (tx: Awaited<ReturnType<typeof c.getTransaction>>) => ({hash:tx.hash,status:tx.statusName,
@@ -228,8 +229,8 @@ await write("wrongRole",office,"challenge",["second-run","integration-run","inte
 await write("challengeStart",office,"start_round",["integration-run",state.transactions.challenge]);
 for (let i=0;i<4;i++) await write("challengeGrade:"+i,office,"grade_item",["integration-run",i]);
 await write("challengeFinalize",office,"finalize",["integration-run"]);
-await settled("integration-run:1:settle");
-await write("settlementReplay",office,"retry_settlement",["integration-run:1:settle"]);
+await settled("settle:integration-run:1");
+await write("settlementReplay",office,"retry_settlement",["settle:integration-run:1"]);
 const original = await read<Round>(office,"get_round",["integration-run",0]);
 const challenged = await read<Round>(office,"get_round",["integration-run",1]);
 const assessment = await read<Run>(office,"get_run",["integration-run"]);
@@ -242,14 +243,14 @@ if (state.checks.fundedBalances !== "SUCCESS") {
 await write("cancelBond",vault,"lock",["cancelled-run","integration-submitter",10,"cancelled-run",0,"run"]);
 await write("cancelCommit",office,"submit_run",["cancelled-run","fixture",base+"tests/fixtures/integration-outputs.json",hash("tests/fixtures/integration-outputs.json"),"Unverified label","integration-submitter"]);
 await write("cancel",office,"cancel_run",["cancelled-run","integration-submitter"]);
-await settled("cancelled-run:close");
+await settled("close:cancelled-run");
 if ((await read<Run>(office,"get_run",["cancelled-run"])).status !== "cancelled") throw new Error("Cancellation not acknowledged");
 state.withdrawRecipient ||= "0x"+createHash("sha256").update("Assay runtime withdrawal:"+revision).digest("hex").slice(0,40);
 if (state.withdrawBefore === undefined) {
   state.withdrawBefore = String(await rpc(() => c.getBalance({address:state.withdrawRecipient})));
   save();
 }
-await write("withdraw",vault,"withdraw_for",["integration-submitter",10,state.withdrawRecipient]);
+await write("withdraw",vault,"withdraw_for",["core-withdrawal","integration-submitter",10,state.withdrawRecipient]);
 for (let attempt=0;attempt<40;attempt++) {
   const balance = await rpc(() => c.getBalance({address:state.withdrawRecipient}));
   if (balance >= BigInt(state.withdrawBefore)+10n) {
@@ -261,6 +262,8 @@ for (let attempt=0;attempt<40;attempt++) {
 }
 if (state.checks.nativeWithdrawal !== "SUCCESS") throw new Error("Native withdrawal transfer not yet verified");
 if (await read<number>(vault,"get_balance",["integration-submitter"]) !== 890) throw new Error("Final refunded and withdrawn balance differs");
+await write("withdrawalConfirm",vault,"reconcile_withdrawal",["core-withdrawal",state.transactions.withdraw]);
+if ((await read<{status:string}>(vault,"get_withdrawal",["core-withdrawal"])).status !== "confirmed") throw new Error("Withdrawal not reconciled");
 state.original = original; state.challenge = challenged;
 state.checks.fullCoverage = "SUCCESS"; state.checks.fundedEscrow = "SUCCESS"; state.checks.settlement = "SUCCESS";
 state.checks.cancellation = "SUCCESS"; state.checks.sourceRevision = revision;

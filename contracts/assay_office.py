@@ -292,6 +292,8 @@ class AssayOffice(gl.Contract):
         self.rounds[run_id + ':' + str(data['number'])] = json.dumps(data)
 
     def _request(self, operation_id: str, request: dict) -> None:
+        if operation_id in self.operations:
+            raise gl.vm.UserError('[EXPECTED] Settlement intent already exists')
         self.operations[operation_id] = json.dumps(request)
         gl.get_contract_at(self.vault).emit(on='finalized').execute(operation_id)
 
@@ -310,7 +312,7 @@ class AssayOffice(gl.Contract):
         proposed = assessment(combined, benchmark['scale'])
         if data['number'] > 0:
             successful = run['score_bps'] - proposed['score_bps'] > benchmark['tolerance_bps']
-            operation = run_id + ':' + str(data['number']) + ':settle'
+            operation = 'settle:' + run_id + ':' + str(data['number'])
             data.update(status='settling', challenge_successful=successful, settlement='requested', proposed=proposed, evidence_grades=combined)
             run.update(status='settling', pending_operation=operation)
             self._request(operation, {'id': operation, 'kind': 'settle', 'run_id': run_id, 'round': data['number'],
@@ -405,7 +407,7 @@ class AssayOffice(gl.Contract):
         locks = [run['id']]
         if run.get('challenge_id') and run['status'] in ('challenged', 'grading'):
             locks.append(run['challenge_id'])
-        operation = run['id'] + ':close'
+        operation = 'close:' + run['id']
         if run['status'] == 'grading':
             data = self.get_round(run['id'], run['round_count'] - 1)
             data['status'] = 'inconclusive' if terminal == 'inconclusive' else 'cancelled'
