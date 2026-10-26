@@ -3,14 +3,14 @@
   "rpc": "https://studio.genlayer.com/api",
   "addresses": {
     "registry": "0x9be36dDaC8A2306225215e0dc70A9eD4A03a1b2b",
-    "vault": "0x441C368f5232B52A67FBE5C3694E1cf20C3D71C8",
-    "office": "0xB773f52C277Fd57c43cee330e6d827059d07C2C5"
+    "vault": "0xa5bDed90eEd3179CDF525dab9654720e972518fb",
+    "office": "0xcb4caA6ad5852EFFd44a5a8746dC256e490DA397"
   },
   "transactions": {
     "registry": "0x83335f82671190837a4a4c009b35e897586d16a8f9894aec8364acbeae09b686",
-    "vault": "0xa792b35e5d4a281f847dc60040315aa0b67c4b48d15dc96e8850f2aa52ac104e",
-    "office": "0x9098ce73812e05222e166c9b4f06b381f7c4b8bb8e5e3b1a0532ecd553d15e38",
-    "configure": "0xe0aa26a34362f0fcb7c8e1282becd0184e8f9f6c329b512470b17088d0d54d02"
+    "vault": "0xfaab1e052ce00a5744be6451c36b95e86f8eadc227e9de841c8c35e7ab4c8963",
+    "office": "0xc7f1fd366745112744e2801984d533433052825395ed62eca1dfd1478ec32444",
+    "configure": "0xcea877429fbb5f717d67febccdabe9ead9363706138901f8c1e86e91d5fe0282"
   },
   "history": [
     {
@@ -85,28 +85,52 @@
         "production_bonding_enabled": false
       },
       "superseded_reason": "Studio host cannot execute native LATEST_FINAL cross-contract reads; replaced by validator checked finalized RPC snapshots"
+    },
+    {
+      "network": "studionet",
+      "rpc": "https://studio.genlayer.com/api",
+      "addresses": {
+        "registry": "0x9be36dDaC8A2306225215e0dc70A9eD4A03a1b2b",
+        "vault": "0x441C368f5232B52A67FBE5C3694E1cf20C3D71C8",
+        "office": "0xB773f52C277Fd57c43cee330e6d827059d07C2C5"
+      },
+      "transactions": {
+        "registry": "0x83335f82671190837a4a4c009b35e897586d16a8f9894aec8364acbeae09b686",
+        "vault": "0xa792b35e5d4a281f847dc60040315aa0b67c4b48d15dc96e8850f2aa52ac104e",
+        "office": "0x9098ce73812e05222e166c9b4f06b381f7c4b8bb8e5e3b1a0532ecd553d15e38",
+        "configure": "0xe0aa26a34362f0fcb7c8e1282becd0184e8f9f6c329b512470b17088d0d54d02"
+      },
+      "wiringVerified": true,
+      "protocol": 2,
+      "sourceHashes": {
+        "registry": "e9740db2243b37f5978405ec62de6b3b4b477e6ca68709f365f210894785a2c6",
+        "vault": "020b4fb4db4858f0184cde15fa9d9a24ee35a91161a6dfb5136c93a8600a3a11",
+        "office": "c8f744d588044cfdc05cf81249cb8d9028ccdcc85508c3a97222c73215fb4859"
+      },
+      "signed": {},
+      "verification": {
+        "source_bytes_match": true,
+        "sdk_schema_verified": true,
+        "wiring_finalized": true,
+        "protocol": 2,
+        "verified_at": "2026-10-26T08:49:44.871Z",
+        "production_bonding_enabled": false,
+        "sourceHashes": {
+          "registry": "e9740db2243b37f5978405ec62de6b3b4b477e6ca68709f365f210894785a2c6",
+          "vault": "020b4fb4db4858f0184cde15fa9d9a24ee35a91161a6dfb5136c93a8600a3a11",
+          "office": "c8f744d588044cfdc05cf81249cb8d9028ccdcc85508c3a97222c73215fb4859"
+        },
+        "finalized_state_transport": "validator checked gen_call latest-final"
+      },
+      "superseded_reason": "Replaced by verified identifier-safe settlement intents and reconciled external native withdrawals (8cc370f)"
     }
   ],
   "wiringVerified": true,
   "protocol": 2,
   "sourceHashes": {
     "registry": "e9740db2243b37f5978405ec62de6b3b4b477e6ca68709f365f210894785a2c6",
-    "vault": "020b4fb4db4858f0184cde15fa9d9a24ee35a91161a6dfb5136c93a8600a3a11",
-    "office": "c8f744d588044cfdc05cf81249cb8d9028ccdcc85508c3a97222c73215fb4859"
+    "vault": "96de338fd5272151dc6868ed6583a7e033569c10e2b1942a69abe7c2c04aaee4",
+    "office": "f92e5b451264a76ced83422b4334e285df5b26489fa8ec323e2ba66de54b1ed6"
   },
-  "signed": {},
-  "verification": {
-    "source_bytes_match": true,
-    "sdk_schema_verified": true,
-    "wiring_finalized": true,
-    "protocol": 2,
-    "verified_at": "2026-10-26T08:49:44.871Z",
-    "production_bonding_enabled": false,
-    "sourceHashes": {
-      "registry": "e9740db2243b37f5978405ec62de6b3b4b477e6ca68709f365f210894785a2c6",
-      "vault": "020b4fb4db4858f0184cde15fa9d9a24ee35a91161a6dfb5136c93a8600a3a11",
-      "office": "c8f744d588044cfdc05cf81249cb8d9028ccdcc85508c3a97222c73215fb4859"
-    },
-    "finalized_state_transport": "validator checked gen_call latest-final"
-  }
+  "signed": {}
 }
