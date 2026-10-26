@@ -32,7 +32,7 @@ const c = client(true, async (raw, hash) => {
 async function rpc<T>(call: () => Promise<T>): Promise<T> {
   for (;;) {
     try { return await call(); } catch (error) {
-      if (!(error instanceof Error) || (!/rate limit/i.test(error.message) && error.name !== "TransactionReceiptNotFoundError")) throw error;
+      if (!(error instanceof Error) || (!/rate limit/i.test(error.message) && !["TransactionReceiptNotFoundError", "TransactionNotFoundError"].includes(error.name))) throw error;
       console.log("Studio transaction or rate window pending; saved progress retained, retrying after 60 seconds");
       await new Promise(resolve => setTimeout(resolve, 60000));
     }
@@ -155,13 +155,38 @@ if (state.checks.broadcastRecovery !== "SUCCESS") {
 }
 await write("unusedRefund",office,"refund_unused",["recovery-probe","integration-submitter"]);
 async function settled(operation: string) {
+  // Finalized child execution proves vault application; its finalized callback proves office acknowledgement.
+  // Poll transaction receipts rather than repeatedly running quota-heavy contract views.
+  state.child_receipts ||= {};
+  const origin = operation.startsWith("unused:") ? "unusedRefund" : operation.endsWith(":close") ? "cancel" : "challengeFinalize";
+  let parentKey = state.transactions["repair:"+operation] ? "repair:"+operation : origin;
+  type StudioTransaction = Awaited<ReturnType<typeof c.getTransaction>> & {triggered_transactions?: string[]};
+  const describe = (tx: Awaited<ReturnType<typeof c.getTransaction>>) => ({hash:tx.hash,status:tx.statusName,
+    execution:tx.consensus_data?.leader_receipt?.[0]?.execution_result,from_address:tx.from_address,to_address:tx.to_address,
+    votes:tx.consensus_data?.votes || {},validator_count:tx.consensus_data?.validators?.length || 0});
   for (let attempt = 0; attempt < 150; attempt++) {
-    const result = await read<{id?:string}>(vault,"get_operation",[operation]);
-    if (result.id) {
-      await write("ack:"+operation,office,"reconcile_settlement",[operation]);
-      return;
+    const parent = await rpc(() => c.getTransaction({hash:state.transactions[parentKey] as TransactionHash})) as StudioTransaction;
+    let failed = false;
+    for (const hash of parent.triggered_transactions || []) {
+      const child = await rpc(() => c.getTransaction({hash:hash as TransactionHash})) as StudioTransaction;
+      if (String(child.statusName) !== "FINALIZED") continue;
+      if (!executionSucceeded(child)) { failed = true; continue; }
+      state.child_receipts[operation] = {vault:describe(child)};
+      save();
+      for (const callbackHash of child.triggered_transactions || []) {
+        const callback = await rpc(() => c.getTransaction({hash:callbackHash as TransactionHash}));
+        if (String(callback.statusName) !== "FINALIZED") continue;
+        if (!executionSucceeded(callback)) { failed = true; continue; }
+        state.child_receipts[operation].acknowledgement = describe(callback);
+        save();
+        return;
+      }
     }
-    if (attempt === 10) await write("repair:"+operation,office,"retry_settlement",[operation]);
+    if (failed) {
+      if (parentKey === "repair:"+operation) throw new Error("Settlement repair child failed: " + operation);
+      await write("repair:"+operation,office,"retry_settlement",[operation]);
+      parentKey = "repair:"+operation;
+    }
     await new Promise(resolve => setTimeout(resolve,15000));
   }
   throw new Error("Settlement still pending; resume saved operation " + operation);
@@ -215,6 +240,7 @@ for (let attempt=0;attempt<40;attempt++) {
   await new Promise(resolve=>setTimeout(resolve,15000));
 }
 if (state.checks.nativeWithdrawal !== "SUCCESS") throw new Error("Native withdrawal transfer not yet verified");
+if (await read<number>(vault,"get_balance",["integration-submitter"]) !== 890) throw new Error("Final refunded and withdrawn balance differs");
 state.original = original; state.challenge = challenged;
 state.checks.fullCoverage = "SUCCESS"; state.checks.fundedEscrow = "SUCCESS"; state.checks.settlement = "SUCCESS";
 state.checks.cancellation = "SUCCESS"; state.checks.sourceRevision = revision;
