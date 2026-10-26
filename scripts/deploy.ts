@@ -5,7 +5,7 @@ import {
   renameSync,
   existsSync,
 } from "node:fs";
-import { client, executionSucceeded } from "../lib/chain";
+import { client, executionSucceeded, resumeBroadcast } from "../lib/chain";
 import { createHash } from "node:crypto";
 import { TransactionHashVariant } from "genlayer-js/types";
 import type { CalldataEncodable } from "genlayer-js/types";
@@ -37,12 +37,27 @@ if (state.protocol !== 2) {
 }
 if (JSON.stringify(state.sourceHashes) !== JSON.stringify(sourceHashes))
   throw new Error("Source changed during deployment; finish verification before replacing a saved deployment");
-const c = client(true);
+let activeKey = "";
+state.signed ||= {};
+const c = client(true, async (raw, hash) => {
+  if (!activeKey) throw new Error("Missing deployment operation identifier");
+  state.signed[activeKey] = {raw, hash};
+  save();
+});
+async function rpc<T>(call: () => Promise<T>): Promise<T> {
+  for (;;) {
+    try { return await call(); } catch (error) {
+      if (!(error instanceof Error) || (!/rate limit/i.test(error.message) && error.name !== "TransactionReceiptNotFoundError")) throw error;
+      console.log("Studio rate window or broadcast pending; saved deployment retained. Retrying in 60 seconds.");
+      await new Promise(resolve => setTimeout(resolve, 60000));
+    }
+  }
+}
 async function wait(hash: string) {
   for (let i = 0; i < 150; i++) {
-    const tx = await c.getTransaction({
+    const tx = await rpc(() => c.getTransaction({
       hash: hash as import("genlayer-js/types").TransactionHash,
-    });
+    }));
     if (String(tx.statusName) === "FINALIZED") {
       if (!executionSucceeded(tx)) {
         console.error(
@@ -55,7 +70,7 @@ async function wait(hash: string) {
     }
     if (["UNDETERMINED", "CANCELED"].includes(String(tx.statusName)))
       throw new Error("Deployment rejected");
-    await new Promise((resolve) => setTimeout(resolve, 8000));
+    await new Promise((resolve) => setTimeout(resolve, 15000));
   }
   throw new Error("Receipt still pending. Rerun to resume saved transaction.");
 }
@@ -72,11 +87,14 @@ for (const name of ["registry", "vault", "office"]) {
       : name === "office"
         ? [state.addresses.registry, state.addresses.vault]
         : [];
+  activeKey = name;
   if (!state.transactions[name]) {
-    state.transactions[name] = await c.deployContract({
+    state.transactions[name] = await rpc(() => state.signed[name]
+      ? resumeBroadcast(state.signed[name].raw, state.signed[name].hash)
+      : c.deployContract({
       code: readFileSync(`contracts/${filename}.py`),
       args,
-    });
+    }));
     save();
     console.log(`${name} submitted: ${state.transactions[name]}`);
   }
@@ -84,30 +102,37 @@ for (const name of ["registry", "vault", "office"]) {
   state.addresses[name] = tx.to_address || tx.recipient;
   if (!state.addresses[name])
     throw new Error("Receipt has no deployed address");
-  await c.request({
+  delete state.signed[name];
+  save();
+  await rpc(() => c.request({
     method: "gen_getContractSchema",
     params: [state.addresses[name]],
-  } as never);
+  } as never));
   save();
   console.log(`${name} verified: ${state.addresses[name]}`);
 }
 if (!state.wiringVerified) {
   if (!state.transactions.configure) {
-    state.transactions.configure = await c.writeContract({
+    activeKey = "configure";
+    state.transactions.configure = await rpc(() => state.signed.configure
+      ? resumeBroadcast(state.signed.configure.raw, state.signed.configure.hash)
+      : c.writeContract({
       address: state.addresses.vault,
       functionName: "configure",
       args: [state.addresses.office],
       value: 0n,
-    });
+    }));
     save();
   }
   await wait(state.transactions.configure);
-  const config = (await c.readContract({
+  delete state.signed.configure;
+  save();
+  const config = (await rpc(() => c.readContract({
     address: state.addresses.vault,
     functionName: "configuration",
     args: [],
     transactionHashVariant: TransactionHashVariant.LATEST_FINAL,
-  })) as Record<string, unknown>;
+  }))) as Record<string, unknown>;
   if (
     String(config.office).toLowerCase() !== state.addresses.office.toLowerCase()
   )

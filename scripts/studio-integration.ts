@@ -70,7 +70,7 @@ async function transaction(key: string, send: () => Promise<string>, expectedFai
     }
     if (["UNDETERMINED", "CANCELED"].includes(String(tx.statusName)))
       throw new Error(key + " consensus rejected");
-    await new Promise((resolve) => setTimeout(resolve, 8000));
+    await new Promise((resolve) => setTimeout(resolve, 15000));
   }
   throw new Error(key + " still pending. Rerun to resume.");
 }
@@ -117,6 +117,11 @@ if (!await read<boolean>(productionRegistry, "benchmark_exists", [benchmarkId]))
 const benchmark = await read<Benchmark>(productionRegistry, "get_benchmark", [benchmarkId]);
 if (benchmark.content_hash !== hash("benchmarks/reasoning.json") || benchmark.sample_size !== 40) throw new Error("Production benchmark differs");
 await db()`INSERT INTO public_records(id,kind,record) VALUES(${benchmarkId},'benchmark',${JSON.stringify({...benchmark,finality:"finalized"})}) ON CONFLICT(kind,id) DO UPDATE SET record=excluded.record,updated_at=now()`;
+const deploymentSourceHashes = Object.fromEntries(Object.entries({registry:"benchmark_registry",vault:"bond_vault",office:"assay_office"}).map(([name, file]) => [name,hash(`contracts/${file}.py`)]));
+if (state.deploymentSourceHashes && JSON.stringify(state.deploymentSourceHashes) !== JSON.stringify(deploymentSourceHashes))
+  throw new Error("Integration source changed; archive the previous attempt before replacing its contracts");
+state.deploymentSourceHashes = deploymentSourceHashes;
+save();
 for (const name of ["registry","vault","office"] as const) {
   if (!state.addresses[name]) {
     const tx = await transaction(name, () => c.deployContract({code:readFileSync(`contracts/${{registry:"benchmark_registry",vault:"bond_vault",office:"assay_office"}[name]}.py`),args:name === "vault" ? [10] : name === "office" ? [state.addresses.registry,state.addresses.vault] : []}));
@@ -152,7 +157,7 @@ async function settled(operation: string) {
       return;
     }
     if (attempt === 10) await write("repair:"+operation,office,"retry_settlement",[operation]);
-    await new Promise(resolve => setTimeout(resolve,8000));
+    await new Promise(resolve => setTimeout(resolve,15000));
   }
   throw new Error("Settlement still pending; resume saved operation " + operation);
 }
